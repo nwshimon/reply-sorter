@@ -1,4 +1,6 @@
+import { randomBytes } from "node:crypto";
 import { sortPastedReply } from "@/app/actions";
+import { SubmitButton } from "./SubmitButton";
 import { sampleDueDate } from "@/lib/format";
 
 const input =
@@ -7,8 +9,12 @@ const input =
 /** "Try yourself": paste a reply, see how it's sorted. Runs the same classify() as the batch script. */
 export function TryForm({ error }: { error?: string }) {
   const due = sampleDueDate();
+  // One id per rendered form. The server uses it as the reply id, so submitting the same form twice
+  // (double click, back button, a retry) can only ever create one reply.
+  const submissionId = randomBytes(3).toString("hex");
   return (
     <form action={sortPastedReply} className="rounded-xl border border-neutral-200 bg-white p-4">
+      <input type="hidden" name="submissionId" value={submissionId} />
       <h2 className="text-sm font-semibold">Try yourself</h2>
       <p className="mt-0.5 text-xs text-neutral-500">Paste a customer reply to see how it’s sorted.</p>
 
@@ -43,9 +49,12 @@ export function TryForm({ error }: { error?: string }) {
             </label>
           </div>
         </details>
-        <button className="rounded-lg bg-accent px-5 py-2 text-xs font-semibold uppercase tracking-wide text-ink shadow-sm transition hover:brightness-95">
+        <SubmitButton
+          pendingText="Sorting…"
+          className="rounded-lg bg-accent px-5 py-2 text-xs font-semibold uppercase tracking-wide text-ink shadow-sm transition hover:brightness-95"
+        >
           Submit
-        </button>
+        </SubmitButton>
       </div>
 
       {error && (

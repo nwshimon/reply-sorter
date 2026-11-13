@@ -221,6 +221,7 @@ Server-rendered pages with Server Actions; no client state library.
 - The detail page shows the model's reasoning, the highlighted evidence quote, and any rule that changed the answer.
 - Correcting takes one click plus an optional note.
 - The paste box shows the full result on the page, including errors. Its Server Action sets a 12 s timeout per attempt (not 15), so a timeout plus the one retry still fits inside the page's `maxDuration = 30`.
+- **A paste can only be processed once.** The Submit button locks ("Sorting…") while the action runs, and the form carries a one-time `submissionId` that becomes the reply id (`P-<id>`), so a repeated submission (double click, back button, retry) hits the primary key, creates nothing and calls no model. Two guards, because a locked button alone doesn't cover a form posted twice.
 - **The paste box handles a body-only paste in the form, not the schema.** The invoice fields stay required in the database: the paid recheck needs them, and without an invoice amount a `/try` reply could never be `paid`. So the form:
   - prefills an **editable sample invoice** (number, amount, due date) and defaults sender and subject to "Pasted reply";
   - sets `received_at` to now and generates an id `P-<short random>` (`replies.id` is plain text, not generated), with `source = pasted`.

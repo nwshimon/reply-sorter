@@ -45,8 +45,11 @@ export async function sortPastedReply(formData: FormData) {
   if (!Number.isFinite(amount) || amount <= 0) fail("Enter an invoice amount greater than 0.");
   if (!isValidIsoDate(dueDate)) fail("Enter a valid due date.");
 
-  const id = `P-${randomBytes(3).toString("hex")}`;
-  await insertPastedReply({
+  // The form carries a one-time id, so a repeated submission of the same form maps to the same reply.
+  // Without a valid one (e.g. a form posted without it) a fresh id is generated.
+  const sent = field("submissionId");
+  const id = `P-${/^[0-9a-f]{6}$/.test(sent) ? sent : randomBytes(3).toString("hex")}`;
+  const created = await insertPastedReply({
     id,
     sender: field("sender") || "Pasted reply",
     customer: "Pasted reply",
@@ -59,6 +62,8 @@ export async function sortPastedReply(formData: FormData) {
     dueDate,
     source: "pasted",
   });
+  // Already submitted (a double click, or the back button): don't classify again, just show that reply.
+  if (!created) redirect(`/?pasted=${id}#result`);
 
   const detail = await getReplyDetail(id);
   // 12 s per attempt (not 15) so a timeout plus the one retry still finishes inside the page's 30 s limit.

@@ -160,8 +160,10 @@ export async function saveCorrection(input: { replyId: string; fromCategory: Cat
   await getDb().insert(corrections).values(input);
 }
 
-export async function insertPastedReply(r: typeof replies.$inferInsert) {
-  await getDb().insert(replies).values(r);
+/** Returns false if a reply with this id already exists (a repeated submission), true if it was created. */
+export async function insertPastedReply(r: typeof replies.$inferInsert): Promise<boolean> {
+  const rows = await getDb().insert(replies).values(r).onConflictDoNothing().returning({ id: replies.id });
+  return rows.length > 0;
 }
 
 /** How many real (non-pasted) replies are in the review queue: the dot beside Review in the sidebar. */

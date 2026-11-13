@@ -2,7 +2,8 @@ import Link from "next/link";
 import { CategoryPill } from "@/components/CategoryPill";
 import { ConfusionMatrix } from "@/components/ConfusionMatrix";
 import { RulesApplied } from "@/components/ReplyFacts";
-import { loadEvalFiles, newestFirst, type EvalFile } from "@/lib/eval-files";
+import { StressReport } from "@/components/StressReport";
+import { loadEvalFiles, loadStressFiles, newestFirst, type EvalFile } from "@/lib/eval-files";
 import { pct } from "@/lib/metrics";
 
 // Reads the committed eval/results-*.json files, so the page shows exactly what is in the repo.
@@ -30,6 +31,7 @@ export default async function EvalPage({ searchParams }: { searchParams: Promise
   // Default: the latest prompt version.
   const selected = datasets.find((f) => f.file === run) ?? datasets[0];
   // v0 baseline = the v0 policy's results (prompt v1), compared with the selected run when that is a later version.
+  const stressRuns = loadStressFiles().filter((r) => r.promptVersion === selected.promptVersion);
   const baseline = datasets.filter((f) => f.promptVersion === "v1").sort((a, b) => Number(b.model.includes("120b")) - Number(a.model.includes("120b")))[0];
 
   return (
@@ -61,6 +63,24 @@ export default async function EvalPage({ searchParams }: { searchParams: Promise
       </header>
 
       <Section result={selected} title="Dataset (40 replies)" />
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Stress tests</h2>
+          <p className="text-sm text-neutral-500">
+            New cases written from the policy, kept apart from the 40 given replies. Many are minimal pairs: two replies that differ in one policy fact. Prompt {selected.promptVersion}.
+          </p>
+        </div>
+        {stressRuns.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-neutral-300 bg-white p-6 text-sm text-neutral-500">No stress runs for prompt {selected.promptVersion} yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {stressRuns.map((r, i) => (
+              <StressReport key={r.file} run={r} defaultOpen={i === 0} />
+            ))}
+          </div>
+        )}
+      </section>
 
       {baseline && baseline.file !== selected.file && <Comparison before={baseline} after={selected} />}
 

@@ -76,8 +76,8 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
   return (
     <main className="mx-auto w-full max-w-6xl space-y-5 px-4 py-8 sm:px-8">
       <nav className="text-sm text-neutral-500">
-        <Link href="/" className="hover:underline">
-          Replies
+        <Link href="/replies" className="hover:underline">
+          All Replies
         </Link>{" "}
         / #{reply.id}
       </nav>

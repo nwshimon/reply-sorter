@@ -41,12 +41,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </span>
           </div>
           <nav className="flex w-full gap-1 overflow-x-auto md:flex-col md:gap-1.5">
-            <NavLink href="/" also={["/replies"]}>
-              Replies
-            </NavLink>
-            <NavLink href="/review" badge={waiting}>
+            <NavLink href="/" badge={waiting}>
               Review
             </NavLink>
+            <NavLink href="/replies">All Replies</NavLink>
             <NavLink href="/try">Try a reply</NavLink>
             <NavLink href="/eval">Evaluation</NavLink>
           </nav>

@@ -10,10 +10,11 @@ import { classify, MAX_BODY_CHARS } from "@/lib/classifier/classify";
 import { llmProvider } from "@/lib/classifier/providers";
 import { isValidIsoDate } from "@/lib/dates";
 
-// Where a review action can send the person back to. Anything else falls back to the queue.
+// Where a review action can send the person back to: the landing page (the queue) or a reply's detail page.
+// Anything else falls back to the queue.
 function safeReturnTo(raw: unknown): string {
   const s = String(raw ?? "");
-  return /^\/(review|replies\/[A-Za-z0-9-]+)?$/.test(s) ? (s === "" ? "/review" : s) : "/review";
+  return s === "/" || /^\/replies\/[A-Za-z0-9-]+$/.test(s) ? s : "/";
 }
 
 /** Back to the page, with a short confirmation (or error) message shown at the top. */
@@ -85,8 +86,8 @@ export async function reviewAction(formData: FormData) {
 
   await saveCorrection({ replyId, action, fromCategory: shown, toCategory: to, note: null });
   // Refresh everything that shows this reply: the queue, the list, the nav count and its detail page.
-  revalidatePath("/review");
   revalidatePath("/");
+  revalidatePath("/replies");
   revalidatePath(`/replies/${replyId}`);
   return done(returnTo, message);
 }
@@ -148,6 +149,6 @@ export async function sortPastedReply(formData: FormData) {
   await saveClassification(id, result);
 
   revalidatePath("/");
-  revalidatePath("/review");
+  revalidatePath("/replies");
   redirect(`/try?result=${id}#result`);
 }

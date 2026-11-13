@@ -1,0 +1,609 @@
+[
+  {
+    "id": "S01",
+    "category": "paid",
+    "rank": 1,
+    "display_category": "paid",
+    "rule": "§3 paid 1 (b): a specific identifier",
+    "group": "paid evidence",
+    "pair": "pair-identifier",
+    "split": "dev",
+    "note": "Identifier present, no amount to conflict."
+  },
+  {
+    "id": "S02",
+    "category": "paid",
+    "rank": 2,
+    "display_category": "needs_human",
+    "rule": "§3 paid 2: no identifier",
+    "group": "paid evidence",
+    "pair": "pair-identifier",
+    "split": "dev",
+    "note": "Same reply as S01 without the trace number."
+  },
+  {
+    "id": "S03",
+    "category": "paid",
+    "rank": 2,
+    "display_category": "needs_human",
+    "rule": "§3 paid 2: money not received yet (a mailed check, even with a number)",
+    "group": "paid evidence",
+    "pair": "pair-mailed",
+    "split": "dev",
+    "note": "A check number does not make a mailed check received."
+  },
+  {
+    "id": "S04",
+    "category": "paid",
+    "rank": 1,
+    "display_category": "paid",
+    "rule": "§3 paid 1: already made by card, with a confirmation number",
+    "group": "paid evidence",
+    "pair": "pair-mailed",
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S05",
+    "category": "paid",
+    "rank": 3,
+    "display_category": "needs_human",
+    "rule": "§3 paid 3 / §2.3: a different amount that is not called partial",
+    "group": "paid evidence",
+    "pair": "pair-partial",
+    "split": "locked",
+    "note": "$1,200 against $3,400, not described as partial."
+  },
+  {
+    "id": "S06",
+    "category": "paid",
+    "rank": 3,
+    "display_category": "needs_human",
+    "rule": "§3 paid 3: an amount above the invoice",
+    "group": "paid evidence",
+    "pair": null,
+    "split": "dev",
+    "note": "Overpayment is also a conflicting amount."
+  },
+  {
+    "id": "S07",
+    "category": "paid",
+    "rank": 3,
+    "display_category": "needs_human",
+    "rule": "§3 paid 3: payment claimed for a different invoice",
+    "group": "paid evidence",
+    "pair": null,
+    "split": "dev",
+    "note": "The reply's invoice is INV-3055; this invoice is INV-3061."
+  },
+  {
+    "id": "S08",
+    "category": "promise_to_pay",
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "rule": "§3 promise_to_pay 2 / §2.3: a promise that also claims part was already paid",
+    "group": "partial payment",
+    "pair": "pair-partial",
+    "split": "locked",
+    "note": "Says it is partial, so it is acknowledged."
+  },
+  {
+    "id": "S09",
+    "category": "promise_to_pay",
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "rule": "§2.3 'half' counts as partial; §3 promise_to_pay 2 (relative date)",
+    "group": "partial payment",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S10",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§3 promise_to_pay 1 (explicit date); §4.6: 24 days out, within the horizon",
+    "group": "promise horizon",
+    "pair": "pair-horizon",
+    "split": "dev",
+    "note": "24 days after the reply."
+  },
+  {
+    "id": "S11",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "needs_human",
+    "rule": "§4.6 promise horizon: 65 days after the reply, so it displays as needs_human",
+    "group": "promise horizon",
+    "pair": "pair-horizon",
+    "split": "dev",
+    "note": "Parent and rank stay promise_to_pay 1; only the display changes."
+  },
+  {
+    "id": "S12",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§4.6: exactly 30 days is not more than 30",
+    "group": "promise horizon",
+    "pair": "pair-boundary",
+    "split": "locked",
+    "note": "Boundary: 2026-11-16 + 30 days = 2026-12-16."
+  },
+  {
+    "id": "S13",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "needs_human",
+    "rule": "§4.6: 31 days is more than 30",
+    "group": "promise horizon",
+    "pair": "pair-boundary",
+    "split": "locked",
+    "note": "Boundary: one day past the horizon."
+  },
+  {
+    "id": "S14",
+    "category": "resend_invoice",
+    "rank": 1,
+    "display_category": "resend_invoice",
+    "rule": "§3 resend_invoice 1: the same invoice, a format change still counts",
+    "group": "resend requests",
+    "pair": "pair-resend",
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S15",
+    "category": "resend_invoice",
+    "rank": 2,
+    "display_category": "needs_human",
+    "rule": "§3 resend_invoice 2: something added (a PO number)",
+    "group": "resend requests",
+    "pair": "pair-resend",
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S16",
+    "category": "resend_invoice",
+    "rank": 2,
+    "display_category": "needs_human",
+    "rule": "§3 resend_invoice 2: a person asks to change the recipient (the #35 shape)",
+    "group": "resend requests",
+    "pair": "pair-resend",
+    "split": "locked",
+    "note": "Recipient changes are a common fraud trick."
+  },
+  {
+    "id": "S17",
+    "category": "resend_invoice",
+    "rank": 3,
+    "display_category": "dispute",
+    "rule": "§3 resend_invoice 3: the invoice itself must be fixed (wrong quantity)",
+    "group": "resend requests",
+    "pair": "pair-fix",
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S18",
+    "category": "resend_invoice",
+    "rank": 3,
+    "display_category": "dispute",
+    "rule": "§3 resend_invoice 3: claims redirected to counsel (the #29 shape)",
+    "group": "resend requests",
+    "pair": "pair-fix",
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S19",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§3 needs_human 0: asks for new payment terms (installments); §2.2 trigger comes first",
+    "group": "needs-human triggers",
+    "pair": "pair-installments",
+    "split": "dev",
+    "note": "The #22 shape: a request needs approval, so it must not be automated."
+  },
+  {
+    "id": "S20",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§3 promise_to_pay 1: explicit date, no new terms asked for",
+    "group": "needs-human triggers",
+    "pair": "pair-installments",
+    "split": "dev",
+    "note": "Pair with S19: no request, just a date."
+  },
+  {
+    "id": "S21",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§3 needs_human 0: asks for new payment terms",
+    "group": "needs-human triggers",
+    "pair": null,
+    "split": "dev",
+    "note": "Another installment request, worded differently."
+  },
+  {
+    "id": "S22",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§3 needs_human 0: asks for a call",
+    "group": "needs-human triggers",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S23",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§3 needs_human 0: does not recognize the vendor",
+    "group": "needs-human triggers",
+    "pair": "pair-vendor",
+    "split": "dev",
+    "note": "May be the wrong contact, not a disagreement about the charge."
+  },
+  {
+    "id": "S24",
+    "category": "dispute",
+    "rank": 0,
+    "display_category": "dispute",
+    "rule": "§3 dispute 0: recognizes the vendor and contests the amount",
+    "group": "needs-human triggers",
+    "pair": "pair-vendor",
+    "split": "dev",
+    "note": "Pair with S23: the only change is that the vendor is recognized."
+  },
+  {
+    "id": "S25",
+    "category": "promise_to_pay",
+    "rank": 3,
+    "display_category": "dispute",
+    "rule": "§3 promise_to_pay 3: payment depends on a condition",
+    "group": "needs-human triggers",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S26",
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "rule": "§3 out_of_office 0: a person unavailable without promising anything",
+    "group": "away and automated",
+    "pair": "pair-away",
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S27",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§2.2: a promise outranks out of office; §3 promise_to_pay 1",
+    "group": "away and automated",
+    "pair": "pair-away",
+    "split": "dev",
+    "note": "Pair with S26: the dated promise wins."
+  },
+  {
+    "id": "S28",
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "rule": "§3 out_of_office 0: an automated receipt or ticket confirmation (policy update for #40)",
+    "group": "away and automated",
+    "pair": "pair-receipt",
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S29",
+    "category": "promise_to_pay",
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "rule": "§3 promise_to_pay 2: a PERSON acknowledging with no firm promise",
+    "group": "away and automated",
+    "pair": "pair-receipt",
+    "split": "locked",
+    "note": "Pair with S28: a person, not a system."
+  },
+  {
+    "id": "S30",
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "rule": "§3 out_of_office 0: a retired mailbox that names a new address",
+    "group": "away and automated",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S31",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§2.2: a needs_human trigger (asks for a call) outranks everything",
+    "group": "precedence",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S32",
+    "category": "dispute",
+    "rank": 0,
+    "display_category": "dispute",
+    "rule": "§2.2: dispute outranks paid",
+    "group": "precedence",
+    "pair": null,
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S33",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§2.2: promise_to_pay outranks resend_invoice",
+    "group": "precedence",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S34",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§6 tier A: manipulation language",
+    "group": "manipulation",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S35",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§6 tier A in French; §2.5 any language",
+    "group": "manipulation",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S36",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§6 tier A wins even with strict payment evidence",
+    "group": "manipulation",
+    "pair": null,
+    "split": "locked",
+    "note": "The payment evidence is real-looking; the instruction makes it needs_human anyway."
+  },
+  {
+    "id": "S37",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§6 tier A: role-play instruction",
+    "group": "manipulation",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S38",
+    "category": "paid",
+    "rank": 1,
+    "display_category": "paid",
+    "rule": "§6 tier B: strict evidence (identifier, matching amount, same invoice)",
+    "group": "manipulation",
+    "pair": "pair-tierb",
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S39",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§6 tier B: no stated amount, so not strict enough",
+    "group": "manipulation",
+    "pair": "pair-tierb",
+    "split": "locked",
+    "note": "Pair with S38: the amount is missing."
+  },
+  {
+    "id": "S40",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§2.5 any language; §3 promise_to_pay 1: an explicit date (Dec 4, 2026 is a Friday, 10 days out)",
+    "group": "languages",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S41",
+    "category": "dispute",
+    "rank": 0,
+    "display_category": "dispute",
+    "rule": "§2.5 any language; §3 dispute 0",
+    "group": "languages",
+    "pair": null,
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S42",
+    "category": "paid",
+    "rank": 1,
+    "display_category": "paid",
+    "rule": "§2.5 any language; §3 paid 1 (identifier: 'comprovante' = receipt number)",
+    "group": "languages",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S43",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "display_category": "promise_to_pay",
+    "rule": "§2.1: the quoted reminder mentions 'dispute', but it is not the customer's words",
+    "group": "quoted text",
+    "pair": null,
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S44",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "acceptable": [
+      "needs_human",
+      "promise_to_pay"
+    ],
+    "rule": "§3 needs_human 0: the meaning is unclear (but 'Thanks, received' is promise_to_pay 2)",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "dev",
+    "note": "One word: either reading is defensible."
+  },
+  {
+    "id": "S45",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "rule": "§3 needs_human 0: unclear; it points to an attachment that is not there",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "dev",
+    "note": "No evidence to count."
+  },
+  {
+    "id": "S46",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "acceptable": [
+      "needs_human",
+      "promise_to_pay"
+    ],
+    "rule": "§3 needs_human 0: unclear",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "locked",
+    "note": null
+  },
+  {
+    "id": "S47",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "acceptable": [
+      "needs_human",
+      "out_of_office"
+    ],
+    "rule": "§3 needs_human 0: unclear; a marketing email is not an away notice",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "dev",
+    "note": "An automated message, but not an away notice, redirect or receipt."
+  },
+  {
+    "id": "S48",
+    "category": "paid",
+    "rank": 1,
+    "display_category": "paid",
+    "acceptable": [
+      "paid",
+      "needs_human"
+    ],
+    "rule": "§3 paid 1: the amount (in words) equals the invoice",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "locked",
+    "note": "Known limit: the code requires a number to appear in the text, so it may send this to needs_human. That is the safe direction."
+  },
+  {
+    "id": "S49",
+    "category": "needs_human",
+    "rank": 0,
+    "display_category": "needs_human",
+    "acceptable": [
+      "needs_human",
+      "promise_to_pay"
+    ],
+    "rule": "The policy is silent: 'different invoice' (paid 3) is defined only for payment claims",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "locked",
+    "note": "A promise about another invoice."
+  },
+  {
+    "id": "S50",
+    "category": "promise_to_pay",
+    "rank": 3,
+    "display_category": "dispute",
+    "acceptable": [
+      "dispute",
+      "needs_human"
+    ],
+    "rule": "§3 promise_to_pay 3: payment depends on a condition",
+    "group": "ambiguous",
+    "pair": null,
+    "split": "dev",
+    "note": "A conditional promise with a partial payment."
+  },
+  {
+    "id": "S51",
+    "category": "resend_invoice",
+    "rank": 1,
+    "display_category": "resend_invoice",
+    "rule": "§3 resend_invoice 1: the same invoice again",
+    "group": "resend requests",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S52",
+    "category": "resend_invoice",
+    "rank": 1,
+    "display_category": "resend_invoice",
+    "rule": "§3 resend_invoice 1: the same invoice again",
+    "group": "resend requests",
+    "pair": null,
+    "split": "dev",
+    "note": null
+  },
+  {
+    "id": "S53",
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "rule": "§3 out_of_office 0: a person unavailable, no promise or request",
+    "group": "away and automated",
+    "pair": null,
+    "split": "dev",
+    "note": "A return date is not a payment date."
+  }
+]

@@ -1,4 +1,4 @@
-// Pulls POLICY.md sections 2, 3 and 5 out of the markdown, word for word, for the model prompt.
+// Pulls POLICY.md sections 2, 3 and 6 out of the markdown, word for word, for the model prompt.
 // Used by scripts/gen-policy-text.ts (writes policy-text.generated.ts) and by a test that fails
 // if the generated file has drifted from POLICY.md. Pure function: no file or network access.
 
@@ -16,7 +16,10 @@ export function extractSection(md: string, n: number): string {
     .trim();
 }
 
-/** Sections 2 (rules), 3 (categories) and 5 (suspicious replies), in order. */
+/**
+ * Sections 2 (rules), 3 (parent categories and ranks) and 6 (suspicious replies), in order. Sections 4 (code rules)
+ * and 5 (what each category does) are NOT in the prompt: the model gives parent + rank, and code decides the rest.
+ */
 export function extractPromptPolicy(md: string): string {
-  return [2, 3, 5].map((n) => extractSection(md, n)).join("\n\n");
+  return [2, 3, 6].map((n) => extractSection(md, n)).join("\n\n");
 }

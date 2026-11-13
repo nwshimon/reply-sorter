@@ -20,9 +20,19 @@ const opts = { model: "test-model", promptVersion: "vtest" };
 const answering = (o: unknown): Provider => async () => ({ content: JSON.stringify(o), promptTokens: 2500, completionTokens: 180, latencyMs: 400 });
 
 describe("the prompt", () => {
-  it("quotes POLICY.md sections 2, 3 and 5 word for word (regenerate with: npm run gen:policy)", () => {
+  it("quotes POLICY.md sections 2, 3 and 6 word for word (regenerate with: npm run gen:policy)", () => {
     expect(POLICY_PROMPT_TEXT).toBe(extractPromptPolicy(readFileSync("POLICY.md", "utf8")));
     expect(SYSTEM_PROMPT).toContain(POLICY_PROMPT_TEXT);
+  });
+
+  it("leaves the code rules (section 4) and the category actions (section 5) out: the model gives parent + rank, code decides the rest", () => {
+    const policy = readFileSync("POLICY.md", "utf8");
+    for (const heading of ["## 4.", "## 5."]) expect(SYSTEM_PROMPT).not.toContain(heading);
+    // Spot-check distinctive phrases from sections 4 and 5, so a copy that dropped the heading is caught too.
+    for (const phrase of ["Low confidence demotes one rank", "Promise horizon", "Review queue", "How it leaves the queue", "Resolved offline"]) {
+      expect(policy, `${phrase} should exist in POLICY.md`).toContain(phrase);
+      expect(SYSTEM_PROMPT, phrase).not.toContain(phrase);
+    }
   });
 
   it("uses none of the 52 test replies as an example", () => {

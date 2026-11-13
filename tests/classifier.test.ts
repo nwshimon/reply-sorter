@@ -4,8 +4,8 @@ import { classify, MAX_BODY_CHARS, type ClassifyInput } from "../src/lib/classif
 import { extractPromptPolicy } from "../src/lib/classifier/policy-extract";
 import { POLICY_PROMPT_TEXT } from "../src/lib/classifier/policy-text.generated";
 import { buildUserMessage, SYSTEM_PROMPT } from "../src/lib/classifier/prompt";
-import { groqProvider, ProviderError, type Provider } from "../src/lib/classifier/providers";
-import { GROQ_JSON_SCHEMA, ModelOutput } from "../src/lib/classifier/schema";
+import { llmProvider, ProviderError, type ChatClient, type Provider } from "../src/lib/classifier/providers";
+import { ModelOutput, RESPONSE_JSON_SCHEMA } from "../src/lib/classifier/schema";
 import { out } from "./fixtures/model-outputs";
 
 const input: ClassifyInput = {
@@ -57,7 +57,7 @@ describe("the prompt", () => {
   });
 });
 
-describe("the Groq JSON schema", () => {
+describe("the provider JSON schema (Cerebras strict mode)", () => {
   type Obj = { type: string; properties?: Record<string, Obj>; required?: readonly string[]; additionalProperties?: boolean };
   const strictEverywhere = (name: string, s: Obj) => {
     if (s.type !== "object") return;
@@ -65,12 +65,52 @@ describe("the Groq JSON schema", () => {
     expect([...(s.required ?? [])].sort(), `${name}.required lists every property`).toEqual(Object.keys(s.properties ?? {}).sort());
     for (const [k, v] of Object.entries(s.properties ?? {})) strictEverywhere(`${name}.${k}`, v);
   };
-  it("meets strict-mode rules on every object", () => strictEverywhere("root", GROQ_JSON_SCHEMA as unknown as Obj));
+  it("meets strict-mode rules on every object", () => strictEverywhere("root", RESPONSE_JSON_SCHEMA as unknown as Obj));
+
+  it("uses none of the keywords Cerebras documents as unsupported, and no type arrays or `nullable`", () => {
+    const unsupported = ["oneOf", "allOf", "not", "pattern", "format", "minItems", "maxItems", "nullable", "$ref", "if", "then", "else", "patternProperties", "minLength", "maxLength"];
+    const walk = (node: unknown, path: string) => {
+      if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${path}[${i}]`));
+      if (node && typeof node === "object") {
+        for (const [k, v] of Object.entries(node)) {
+          // property NAMES (like a field called "format") aren't keywords; only look at schema keywords
+          if (k !== "properties") expect(unsupported, `${path}.${k}`).not.toContain(k);
+          if (k === "type") expect(Array.isArray(v), `${path}.type must not be an array`).toBe(false);
+          walk(v, `${path}.${k}`);
+        }
+      }
+    };
+    walk(RESPONSE_JSON_SCHEMA, "schema");
+  });
+  it("writes every nullable field as anyOf [type, null]", () => {
+    for (const k of ["amount_paid", "amount_disputed", "promised_date_text", "promised_date", "payment_reference", "invoice_number_mentioned"] as const) {
+      const f = RESPONSE_JSON_SCHEMA.properties.details.properties[k];
+      const types = f.anyOf.map((x) => x.type);
+      expect(types, k).toHaveLength(2);
+      expect(types, k).toContain("null");
+      expect(types.filter((t) => t !== "null")[0], k).toMatch(/^(string|number)$/);
+    }
+  });
+  it("stays well inside Cerebras's 5,000-character schema budget (names and enum values; descriptions excluded)", () => {
+    const names: string[] = [];
+    const walk = (node: unknown) => {
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (node && typeof node === "object") {
+        for (const [k, v] of Object.entries(node)) {
+          if (k === "properties" && v && typeof v === "object") names.push(...Object.keys(v));
+          if (k === "enum" && Array.isArray(v)) names.push(...v.map(String));
+          walk(v);
+        }
+      }
+    };
+    walk(RESPONSE_JSON_SCHEMA);
+    expect(names.join("").length).toBeLessThan(1000);
+  });
 
   it("has the same fields, in the same order, as the Zod schema", () => {
-    expect(Object.keys(GROQ_JSON_SCHEMA.properties)).toEqual(Object.keys(ModelOutput.shape));
-    expect(Object.keys(GROQ_JSON_SCHEMA.properties.details.properties)).toEqual(Object.keys(ModelOutput.shape.details.shape));
-    expect(Object.keys(GROQ_JSON_SCHEMA.properties.flags.properties)).toEqual(Object.keys(ModelOutput.shape.flags.shape));
+    expect(Object.keys(RESPONSE_JSON_SCHEMA.properties)).toEqual(Object.keys(ModelOutput.shape));
+    expect(Object.keys(RESPONSE_JSON_SCHEMA.properties.details.properties)).toEqual(Object.keys(ModelOutput.shape.details.shape));
+    expect(Object.keys(RESPONSE_JSON_SCHEMA.properties.flags.properties)).toEqual(Object.keys(ModelOutput.shape.flags.shape));
   });
   it("accepts a fixture output through Zod", () => expect(ModelOutput.safeParse(out()).success).toBe(true));
 });
@@ -148,98 +188,137 @@ describe("classify(): every failure becomes needs_human / classifier_error", () 
   });
 });
 
-describe("groqProvider: timeout, retry and rate limits (fake fetch, no network)", () => {
-  const ok = () =>
-    new Response(JSON.stringify({ choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 10, completion_tokens: 5 } }), { status: 200 });
+describe("llmProvider: timeout, retry and rate limits (fake client, no network)", () => {
+  const reqOk = () => ({ choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 10, completion_tokens: 5 } });
   const req = { model: "m", system: "s", user: "u" };
-  const make = (fetchImpl: typeof fetch, extra = {}) => groqProvider({ apiKey: "k", fetchImpl, sleep: async () => {}, timeoutMs: 50, ...extra });
+  /** A fake OpenAI client whose `create` is a vitest mock. */
+  const fake = (impl: ChatClient["chat"]["completions"]["create"]) => {
+    const create = vi.fn(impl);
+    return { client: { chat: { completions: { create } } } as ChatClient, create };
+  };
+  const make = (client: ChatClient, extra = {}) => llmProvider({ apiKey: "k", baseUrl: "https://example.test/v1", client, sleep: async () => {}, timeoutMs: 50, ...extra });
+  const apiError = (status: number, message = "", headers: Record<string, string> = {}) => Object.assign(new Error(message), { status, headers });
+  const named = (name: string) => Object.assign(new Error(name), { name });
 
   it("returns content and token usage", async () => {
-    const r = await make(async () => ok())(req);
-    expect(r).toMatchObject({ content: "{}", promptTokens: 10, completionTokens: 5 });
+    const { client } = fake(async () => reqOk());
+    expect(await make(client)(req)).toMatchObject({ content: "{}", promptTokens: 10, completionTokens: 5 });
   });
 
-  it("sends strict json_schema, temperature 0, low reasoning, and the key only in the header", async () => {
-    let sent: { headers: Record<string, string>; body: string } | undefined;
-    await make(async (_u, init) => {
-      sent = init as unknown as typeof sent;
-      return ok();
-    })(req);
-    const body = JSON.parse(sent!.body);
-    expect(body).toMatchObject({ temperature: 0, reasoning_effort: "low", response_format: { type: "json_schema", json_schema: { strict: true } } });
-    expect(sent!.body).not.toContain('"k"');
-    expect(sent!.headers.Authorization).toBe("Bearer k");
+  it("sends strict json_schema, temperature 0 and low reasoning, with no key in the request body", async () => {
+    const { client, create } = fake(async () => reqOk());
+    await make(client, { apiKey: "SECRET-KEY-VALUE" })(req);
+    const body = create.mock.calls[0][0] as Record<string, unknown>;
+    expect(body).toMatchObject({ model: "m", temperature: 0, reasoning_effort: "low", response_format: { type: "json_schema", json_schema: { strict: true } } });
+    expect(JSON.stringify(body)).not.toContain("SECRET-KEY-VALUE");
   });
 
   it("retries once after a timeout, then succeeds", async () => {
-    const f = vi
-      .fn<typeof fetch>()
-      .mockRejectedValueOnce(Object.assign(new Error("t"), { name: "TimeoutError" }))
-      .mockResolvedValueOnce(ok());
-    await make(f)(req);
-    expect(f).toHaveBeenCalledTimes(2);
+    const { client, create } = fake(async () => reqOk());
+    create.mockRejectedValueOnce(named("APIConnectionTimeoutError"));
+    await make(client)(req);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it("gives up after the retry: two timeouts → ProviderError(timeout)", async () => {
-    const f = vi.fn<typeof fetch>().mockRejectedValue(Object.assign(new Error("t"), { name: "TimeoutError" }));
-    await expect(make(f)(req)).rejects.toMatchObject({ kind: "timeout" });
-    expect(f).toHaveBeenCalledTimes(2);
+    const { client, create } = fake(async () => { throw named("TimeoutError"); });
+    await expect(make(client)(req)).rejects.toMatchObject({ kind: "timeout" });
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it("really times out a hung request", async () => {
-    const hang: typeof fetch = (_u, init) =>
-      new Promise((_res, rej) => (init!.signal as AbortSignal).addEventListener("abort", () => rej(Object.assign(new Error("a"), { name: "TimeoutError" }))));
-    await expect(make(hang, { timeoutMs: 20 })(req)).rejects.toMatchObject({ kind: "timeout" });
+  it("really times out a hung request (the abort signal is passed through)", async () => {
+    const { client } = fake((_body, options) => new Promise((_res, rej) => options!.signal!.addEventListener("abort", () => rej(named("TimeoutError")))));
+    await expect(make(client, { timeoutMs: 20 })(req)).rejects.toMatchObject({ kind: "timeout" });
+  });
+
+  it("retries a network error once, then reports it without the key", async () => {
+    const { client, create } = fake(async () => { throw new Error("connect ECONNRESET"); });
+    await expect(make(client)(req)).rejects.toMatchObject({ kind: "network" });
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it("retries a 500 once", async () => {
-    const f = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response("oops", { status: 500 })).mockResolvedValueOnce(ok());
-    await make(f)(req);
-    expect(f).toHaveBeenCalledTimes(2);
+    const { client, create } = fake(async () => reqOk());
+    create.mockRejectedValueOnce(apiError(500, "oops"));
+    await make(client)(req);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
   it("retries a failed strict-JSON generation (400 json_validate_failed) once", async () => {
-    const f = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response('{"error":{"code":"json_validate_failed"}}', { status: 400 })).mockResolvedValueOnce(ok());
-    await make(f)(req);
-    expect(f).toHaveBeenCalledTimes(2);
+    const { client, create } = fake(async () => reqOk());
+    create.mockRejectedValueOnce(apiError(400, "json_validate_failed"));
+    await make(client)(req);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it("does not retry a 401", async () => {
-    const f = vi.fn<typeof fetch>().mockResolvedValue(new Response("nope", { status: 401 }));
-    await expect(make(f)(req)).rejects.toMatchObject({ kind: "http" });
-    expect(f).toHaveBeenCalledTimes(1);
+  it("does not retry a 401 or an ordinary 400", async () => {
+    for (const status of [401, 400]) {
+      const { client, create } = fake(async () => { throw apiError(status, "nope"); });
+      await expect(make(client)(req)).rejects.toMatchObject({ kind: "http" });
+      expect(create).toHaveBeenCalledTimes(1);
+    }
   });
 
   it("empty content is retried, then fails", async () => {
-    const empty = () => new Response(JSON.stringify({ choices: [{ message: { content: "" } }] }), { status: 200 });
-    const f = vi.fn<typeof fetch>().mockImplementation(async () => empty());
-    await expect(make(f)(req)).rejects.toMatchObject({ kind: "empty" });
-    expect(f).toHaveBeenCalledTimes(2);
+    const { client, create } = fake(async () => ({ choices: [{ message: { content: "" } }] }));
+    await expect(make(client)(req)).rejects.toMatchObject({ kind: "empty" });
+    expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it("429: fails at once by default (right for /try)", async () => {
-    const f = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 429, headers: { "retry-after": "5" } }));
-    await expect(make(f)(req)).rejects.toMatchObject({ kind: "rate_limit" });
-    expect(f).toHaveBeenCalledTimes(1);
+  it("429: fails at once by default (right for the paste box)", async () => {
+    const { client, create } = fake(async () => { throw apiError(429, "slow down", { "retry-after": "5" }); });
+    await expect(make(client)(req)).rejects.toMatchObject({ kind: "rate_limit" });
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it("429: waits the retry-after time and tries again when allowed (batch)", async () => {
     const sleep = vi.fn(async () => {});
-    const f = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response("", { status: 429, headers: { "retry-after": "7" } })).mockResolvedValueOnce(ok());
-    await make(f, { maxRateLimitWaitMs: 60_000, sleep })(req);
+    const { client, create } = fake(async () => reqOk());
+    create.mockRejectedValueOnce(apiError(429, "", { "retry-after": "7" }));
+    await make(client, { maxRateLimitWaitMs: 60_000, sleep })(req);
     expect(sleep).toHaveBeenCalledWith(7000);
-    expect(f).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("429: with no retry-after header (Cerebras documents none) it waits 13 s, enough to free a request slot", async () => {
+    const sleep = vi.fn(async () => {});
+    const { client, create } = fake(async () => reqOk());
+    create.mockRejectedValueOnce(apiError(429, "too many requests"));
+    await make(client, { maxRateLimitWaitMs: 60_000, sleep })(req);
+    expect(sleep).toHaveBeenCalledWith(13_000);
+  });
+
+  it("429: reads retry-after from a web Headers object too", async () => {
+    const sleep = vi.fn(async () => {});
+    const { client, create } = fake(async () => reqOk());
+    create.mockRejectedValueOnce(Object.assign(new Error(""), { status: 429, headers: new Headers({ "retry-after": "4" }) }));
+    await make(client, { maxRateLimitWaitMs: 60_000, sleep })(req);
+    expect(sleep).toHaveBeenCalledWith(4000);
   });
 
   it("429: stops waiting once the wait budget is spent", async () => {
-    const f = vi.fn<typeof fetch>().mockImplementation(async () => new Response("", { status: 429, headers: { "retry-after": "30" } }));
-    await expect(make(f, { maxRateLimitWaitMs: 70_000 })(req)).rejects.toMatchObject({ kind: "rate_limit" });
-    expect(f).toHaveBeenCalledTimes(3); // waited twice (60 s), the third wait would pass 70 s
+    const { client, create } = fake(async () => { throw apiError(429, "", { "retry-after": "30" }); });
+    await expect(make(client, { maxRateLimitWaitMs: 70_000 })(req)).rejects.toMatchObject({ kind: "rate_limit" });
+    expect(create).toHaveBeenCalledTimes(3); // waited twice (60 s); a third wait would pass 70 s
+  });
+
+  it("fails clearly, without calling anything, when the key or base URL is missing", async () => {
+    const saved = { k: process.env.LLM_API_KEY, u: process.env.LLM_BASE_URL };
+    delete process.env.LLM_API_KEY;
+    delete process.env.LLM_BASE_URL;
+    try {
+      await expect(llmProvider()(req)).rejects.toThrow("LLM_API_KEY is not set");
+      process.env.LLM_API_KEY = "x";
+      await expect(llmProvider()(req)).rejects.toThrow("LLM_BASE_URL is not set");
+    } finally {
+      if (saved.k === undefined) delete process.env.LLM_API_KEY; else process.env.LLM_API_KEY = saved.k;
+      if (saved.u === undefined) delete process.env.LLM_BASE_URL; else process.env.LLM_BASE_URL = saved.u;
+    }
   });
 
   it("errors never contain the API key", async () => {
-    const f = vi.fn<typeof fetch>().mockResolvedValue(new Response("bad", { status: 401 }));
-    const e = await make(f, { apiKey: "SECRET-KEY-VALUE" })(req).catch((x: Error) => x);
+    const { client } = fake(async () => { throw apiError(401, "Incorrect credentials"); });
+    const e = await make(client, { apiKey: "SECRET-KEY-VALUE" })(req).catch((x: Error) => x);
     expect((e as Error).message).not.toContain("SECRET-KEY-VALUE");
   });
 });

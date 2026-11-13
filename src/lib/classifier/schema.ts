@@ -3,7 +3,7 @@ import { CATEGORIES, CONFIDENCES } from "../categories";
 
 // The model's output contract (CLAUDE.md "Model output", v0, 12 fields).
 // This Zod schema re-checks the model's JSON before anything is saved; anything that fails it
-// becomes needs_human / classifier_error. The matching Groq JSON Schema is added in step 4.
+// becomes needs_human / classifier_error. The matching provider JSON Schema (RESPONSE_JSON_SCHEMA) is below.
 // Formats (dates, amounts in the text, evidence) are checked in code, not here: see policy.ts.
 export const ModelOutput = z.strictObject({
   reasoning: z.string(),
@@ -26,14 +26,15 @@ export const ModelOutput = z.strictObject({
 });
 export type ModelOutput = z.infer<typeof ModelOutput>;
 
-// The same contract as a Groq strict-mode JSON Schema. Strict mode needs EVERY property listed in
-// `required` and `additionalProperties: false` on every object; optional fields use a type array.
-// No `format`, `pattern` or min/max: dates and amounts are validated in code. A test keeps this
-// in step with the Zod schema above. Property order is the order the model fills them in:
-// reasoning comes first so the model explains itself before choosing a category.
-const nullable = (type: "string" | "number") => ({ type: [type, "null"] });
+// The same contract as a strict-mode JSON Schema for the provider (Cerebras). Strict mode needs EVERY property
+// listed in `required` and `additionalProperties: false` on every object. Nullable fields are written as
+// anyOf [type, null]: Cerebras documents anyOf for nullability, not `nullable: true` or a type array.
+// No pattern, format, oneOf, allOf, minItems or maxItems: dates and amounts are validated in code. A test
+// keeps this in step with the Zod schema above and checks for unsupported keywords. Property order is the
+// order the model fills them in: reasoning comes first so the model explains itself before choosing a category.
+const nullable = (type: "string" | "number") => ({ anyOf: [{ type }, { type: "null" }] });
 
-export const GROQ_JSON_SCHEMA = {
+export const RESPONSE_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["reasoning", "category", "rank", "confidence", "evidence_quote", "details", "flags"],

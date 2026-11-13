@@ -1,6 +1,6 @@
 import { applyPolicy, failureResult, type PolicyResult, type ReplyContext } from "../policy";
 import { buildUserMessage, CLOSING_TAG, ESCAPED_CLOSING_TAG, promptVersion, SYSTEM_PROMPT } from "./prompt";
-import { groqProvider, ProviderError, type Provider } from "./providers";
+import { llmProvider, ProviderError, type Provider } from "./providers";
 import { ModelOutput } from "./schema";
 
 // THE one entry point: model → check output → policy → result. The batch script, /try and the
@@ -59,7 +59,7 @@ export async function classify(input: ClassifyInput, opts: ClassifyOptions = {})
   if (!version) return fail("PROMPT_VERSION is not set");
   if (input.body.length > MAX_BODY_CHARS) return fail(`reply is ${input.body.length} characters; the limit is ${MAX_BODY_CHARS}`);
 
-  const provider = opts.provider ?? groqProvider();
+  const provider = opts.provider ?? llmProvider();
 
   let content: string;
   let usage: Pick<ClassifyResult, "latencyMs" | "promptTokens" | "completionTokens">;

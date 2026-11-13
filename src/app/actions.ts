@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getReplyDetail, insertPastedReply, replyToInput, saveClassification, saveCorrection } from "@/db/queries";
 import { isCategory } from "@/lib/categories";
 import { classify, MAX_BODY_CHARS } from "@/lib/classifier/classify";
-import { groqProvider } from "@/lib/classifier/providers";
+import { llmProvider } from "@/lib/classifier/providers";
 import { isValidIsoDate } from "@/lib/dates";
 
 /**
@@ -67,7 +67,7 @@ export async function sortPastedReply(formData: FormData) {
 
   const detail = await getReplyDetail(id);
   // 12 s per attempt (not 15) so a timeout plus the one retry still finishes inside the page's 30 s limit.
-  const result = await classify(replyToInput(detail!.reply), { provider: groqProvider({ timeoutMs: 12_000 }) });
+  const result = await classify(replyToInput(detail!.reply), { provider: llmProvider({ timeoutMs: 12_000 }) });
   await saveClassification(id, result);
 
   revalidatePath("/replies");

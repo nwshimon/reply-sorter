@@ -4,7 +4,7 @@
 //   npm run classify -- --only=09,20,36       just these ids
 //   npm run classify -- --mismatches --sample=5   rerun the stored mismatches + 5 that were correct
 //   npm run classify -- --force               redo even if a result exists
-//   npm run classify -- --budget=60000        stop after this many tokens (default 120000)
+//   npm run classify -- --budget=60000        stop after this many tokens (default 600000)
 //   npm run classify:heldout                  the 12 held-out replies (final prompt version, 120b)
 //
 // The model and prompt version come from CLASSIFIER_MODEL and PROMPT_VERSION. One reply at a time,
@@ -12,7 +12,7 @@
 // don't count as done, so the next run retries them.
 import { readFileSync } from "node:fs";
 import { classify } from "../src/lib/classifier/classify";
-import { groqProvider } from "../src/lib/classifier/providers";
+import { llmProvider } from "../src/lib/classifier/providers";
 import {
   currentResultRows,
   doneReplyIds,
@@ -29,9 +29,10 @@ const value = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.sp
 const heldout = flag("heldout");
 const force = flag("force");
 const only = value("only")?.split(",").map((s) => s.trim().toUpperCase().replace(/^H?(\d+)$/, (_m, n) => (heldout ? `H${n}` : n)));
-const budget = Number(value("budget") ?? 120_000);
+const budget = Number(value("budget") ?? 600_000);
 const sample = Number(value("sample") ?? 5);
-const PAUSE_MS = 25_000;
+// The provider allows 5 requests a minute: at least 13 s apart (CLAUDE.md).
+const PAUSE_MS = 13_000;
 
 const run = getActiveRun();
 const labelsFile = heldout ? "data/heldout-labels.json" : "data/labels.json";
@@ -65,7 +66,7 @@ if (candidates.length === 0) {
 }
 
 // Waits out 429s (up to 3 minutes per call); one retry on timeouts and 5xx.
-const provider = groqProvider({ maxRateLimitWaitMs: 180_000 });
+const provider = llmProvider({ maxRateLimitWaitMs: 180_000 });
 
 let totalTokens = 0;
 let failed = 0;

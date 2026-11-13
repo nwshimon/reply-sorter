@@ -1,8 +1,10 @@
-import { GROQ_JSON_SCHEMA } from "./schema";
+import OpenAI from "openai";
+import { RESPONSE_JSON_SCHEMA } from "./schema";
 
-// The only place that makes a network call to a model. Every failure becomes a ProviderError
-// that classify() turns into needs_human / classifier_error. The API key is never put in a
-// message, log or error.
+// The only place that makes a network call to a model. One OpenAI-compatible client: the provider is chosen
+// by LLM_BASE_URL + LLM_API_KEY (Cerebras today), so changing provider means changing environment variables,
+// not code. Every failure becomes a ProviderError that classify() turns into needs_human / classifier_error.
+// The API key is never put in a message, log or error.
 
 export type ProviderRequest = { model: string; system: string; user: string };
 export type ProviderResult = {
@@ -26,37 +28,59 @@ export class ProviderError extends Error {
   }
 }
 
-export type GroqOptions = {
+/** The one method of the OpenAI client this code uses, so tests can pass a fake. */
+export type ChatClient = {
+  chat: { completions: { create: (body: Record<string, unknown>, options?: { signal?: AbortSignal; timeout?: number }) => Promise<unknown> } };
+};
+
+export type LlmOptions = {
   apiKey?: string;
+  baseUrl?: string;
   /** Per attempt. CLAUDE.md: 15 seconds. */
   timeoutMs?: number;
   /** Extra attempts after a timeout, network error, 5xx, or a failed strict-JSON generation. */
   retries?: number;
   /**
-   * On HTTP 429, wait up to this long in total (using the retry-after header) and try again.
-   * 0 (default) fails straight away: right for /try, where the page has a 30 s limit.
-   * The batch script sets a larger value.
+   * On HTTP 429, wait up to this long in total and try again. 0 (default) fails straight away: right for the
+   * paste box, where the page has a 30 s limit. The batch script sets a larger value.
    */
   maxRateLimitWaitMs?: number;
-  fetchImpl?: typeof fetch;
+  client?: ChatClient;
   sleep?: (ms: number) => Promise<void>;
 };
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Cerebras doesn't document a retry-after header; its free tier is 5 requests a minute, so ~13 s clears a request slot. */
+const DEFAULT_RATE_LIMIT_WAIT_S = 13;
 
-export function groqProvider(opts: GroqOptions = {}): Provider {
+type ApiFailure = { name?: string; status?: number; message?: string; headers?: unknown; error?: unknown };
+
+function headerValue(headers: unknown, name: string): string | null {
+  if (!headers) return null;
+  if (typeof (headers as { get?: unknown }).get === "function") return (headers as Headers).get(name);
+  const v = (headers as Record<string, unknown>)[name];
+  return typeof v === "string" ? v : null;
+}
+
+/** An OpenAI-compatible chat client for the configured provider. Throws ProviderError (never returns a failure). */
+export function llmProvider(opts: LlmOptions = {}): Provider {
   const timeoutMs = opts.timeoutMs ?? 15_000;
   const retries = opts.retries ?? 1;
   const maxRateLimitWaitMs = opts.maxRateLimitWaitMs ?? 0;
-  const doFetch = opts.fetchImpl ?? fetch;
   const sleep = opts.sleep ?? defaultSleep;
 
   return async ({ model, system, user }) => {
-    const apiKey = opts.apiKey ?? process.env.GROQ_API_KEY;
-    if (!apiKey) throw new ProviderError("GROQ_API_KEY is not set", "http", false);
+    let client = opts.client;
+    if (!client) {
+      const apiKey = opts.apiKey ?? process.env.LLM_API_KEY;
+      const baseURL = opts.baseUrl ?? process.env.LLM_BASE_URL;
+      if (!apiKey) throw new ProviderError("LLM_API_KEY is not set", "http", false);
+      if (!baseURL) throw new ProviderError("LLM_BASE_URL is not set", "http", false);
+      // maxRetries 0: retrying is done here, where the rules (timeout, one retry, 429 waits) are tested.
+      client = new OpenAI({ apiKey, baseURL, maxRetries: 0 }) as unknown as ChatClient;
+    }
 
-    const body = JSON.stringify({
+    const body = {
       model,
       messages: [
         { role: "system", content: system },
@@ -64,13 +88,13 @@ export function groqProvider(opts: GroqOptions = {}): Provider {
       ],
       temperature: 0,
       reasoning_effort: "low",
-      // Hidden reasoning tokens count toward this and toward the 8K tokens/min limit.
+      // Hidden reasoning tokens count toward this and toward the per-minute token limit.
       max_completion_tokens: 1500,
       response_format: {
         type: "json_schema",
-        json_schema: { name: "reply_classification", strict: true, schema: GROQ_JSON_SCHEMA },
+        json_schema: { name: "reply_classification", strict: true, schema: RESPONSE_JSON_SCHEMA },
       },
-    });
+    };
 
     let attemptsLeft = retries + 1;
     let rateLimitWaited = 0;
@@ -79,47 +103,41 @@ export function groqProvider(opts: GroqOptions = {}): Provider {
     while (attemptsLeft > 0) {
       const started = Date.now();
       try {
-        const res = await doFetch(GROQ_URL, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body,
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-
-        if (res.status === 429) {
-          const waitMs = Math.max(1000, Number(res.headers.get("retry-after") ?? "20") * 1000);
-          if (rateLimitWaited + waitMs > maxRateLimitWaitMs) {
-            throw new ProviderError(`rate limited (HTTP 429); retry-after ${Math.round(waitMs / 1000)}s`, "rate_limit", false);
-          }
-          rateLimitWaited += waitMs;
-          await sleep(waitMs);
-          continue; // waiting out a rate limit doesn't use up an attempt
-        }
-
-        if (!res.ok) {
-          const text = (await res.text().catch(() => "")).slice(0, 200);
-          const retryable = res.status >= 500 || /json_validate_failed|failed_generation/.test(text);
-          throw new ProviderError(`Groq returned HTTP ${res.status}: ${text}`, "http", retryable);
-        }
-
-        const data = (await res.json()) as {
+        const completion = (await client.chat.completions.create(body, { signal: AbortSignal.timeout(timeoutMs), timeout: timeoutMs })) as {
           choices?: { message?: { content?: string | null } }[];
           usage?: { prompt_tokens?: number; completion_tokens?: number };
         };
-        const content = data.choices?.[0]?.message?.content;
-        if (!content) throw new ProviderError("Groq returned no content", "empty", true);
+        const content = completion.choices?.[0]?.message?.content;
+        if (!content) throw new ProviderError("The model returned no content", "empty", true);
         return {
           content,
-          promptTokens: data.usage?.prompt_tokens ?? null,
-          completionTokens: data.usage?.completion_tokens ?? null,
+          promptTokens: completion.usage?.prompt_tokens ?? null,
+          completionTokens: completion.usage?.completion_tokens ?? null,
           latencyMs: Date.now() - started,
         };
       } catch (err) {
-        if (err instanceof ProviderError) lastError = err;
-        else if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
-          lastError = new ProviderError(`no answer within ${timeoutMs / 1000}s`, "timeout", true);
+        if (err instanceof ProviderError) {
+          lastError = err;
         } else {
-          lastError = new ProviderError(`network error: ${err instanceof Error ? err.message : String(err)}`, "network", true);
+          const e = err as ApiFailure;
+          const text = String(e.message ?? "").slice(0, 200);
+          if (e.status === 429) {
+            const waitMs = Math.max(1000, Number(headerValue(e.headers, "retry-after") ?? DEFAULT_RATE_LIMIT_WAIT_S) * 1000);
+            if (rateLimitWaited + waitMs > maxRateLimitWaitMs) {
+              throw new ProviderError(`rate limited (HTTP 429): ${text}`, "rate_limit", false);
+            }
+            rateLimitWaited += waitMs;
+            await sleep(waitMs);
+            continue; // waiting out a rate limit doesn't use up an attempt
+          }
+          if (typeof e.status === "number") {
+            const retryable = e.status >= 500 || /json_validate_failed|failed_generation/.test(text);
+            lastError = new ProviderError(`The provider returned HTTP ${e.status}: ${text}`, "http", retryable);
+          } else if (["TimeoutError", "AbortError", "APIConnectionTimeoutError", "APIUserAbortError"].includes(e.name ?? "")) {
+            lastError = new ProviderError(`no answer within ${timeoutMs / 1000}s`, "timeout", true);
+          } else {
+            lastError = new ProviderError(`network error: ${text}`, "network", true);
+          }
         }
         if (!lastError.retryable) throw lastError;
       }

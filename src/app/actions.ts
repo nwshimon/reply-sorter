@@ -29,7 +29,6 @@ function done(returnTo: string, message: string, kind: "ok" | "error" = "ok"): n
  * can't write a row that doesn't make sense (e.g. confirming a payment that was already confirmed).
  *
  *   recategorize     any reply, to any other category           (detail page, or Needs human in the queue)
- *   keep             needs_human, in review                      → stays needs_human, leaves the queue
  *   confirm_paid     paid, in review                             → leaves the queue
  *   reject_paid      paid, in review                             → becomes needs_human, still in the queue
  *   resolve_offline  dispute, in review                          → leaves the queue
@@ -38,7 +37,6 @@ export async function reviewAction(formData: FormData) {
   const replyId = String(formData.get("replyId") ?? "");
   const intent = String(formData.get("intent") ?? "");
   const returnTo = safeReturnTo(formData.get("returnTo"));
-  const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
 
   const detail = await getReplyDetail(replyId);
   if (!detail || !detail.shownCategory) return done(returnTo, "That reply isn’t available to act on.", "error");
@@ -63,12 +61,6 @@ export async function reviewAction(formData: FormData) {
           : `${label} moved to ${CATEGORY_LABELS[target]}.`;
       break;
     }
-    case "keep":
-      if (shown !== "needs_human" || !inReview) return done(returnTo, `${label} isn’t waiting in Needs human.`, "error");
-      action = "keep";
-      to = "needs_human";
-      message = `${label} kept as Needs human.`;
-      break;
     case "confirm_paid":
       if (shown !== "paid" || !inReview) return done(returnTo, `${label} isn’t waiting for payment confirmation.`, "error");
       action = "confirm_paid";
@@ -91,7 +83,7 @@ export async function reviewAction(formData: FormData) {
       return done(returnTo, "That action isn’t available.", "error");
   }
 
-  await saveCorrection({ replyId, action, fromCategory: shown, toCategory: to, note });
+  await saveCorrection({ replyId, action, fromCategory: shown, toCategory: to, note: null });
   // Refresh everything that shows this reply: the queue, the list, the nav count and its detail page.
   revalidatePath("/review");
   revalidatePath("/");

@@ -64,14 +64,12 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
       at: c.createdAt,
       title: ACTION_LABELS[c.action],
       sub: `${c.fromCategory ? CATEGORY_LABELS[c.fromCategory] : "Not classified"} → ${CATEGORY_LABELS[c.toCategory]}`,
-      note: c.note,
     })),
     ...runs.map((r) => ({
       key: `r${r.id}`,
       at: r.createdAt,
       title: r.error ? "Classification failed" : "Classified",
       sub: `${r.model} · prompt ${r.promptVersion}${r.error ? ` · ${classifierFailure(r.error)}` : ` · ${CATEGORY_LABELS[r.finalCategory]}`}`,
-      note: null as string | null,
     })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
 
@@ -193,7 +191,6 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
                       </span>
                     </div>
                     <p className="text-xs text-neutral-600">{e.sub}</p>
-                    {e.note && <p className="mt-0.5 text-xs text-neutral-700">“{e.note}”</p>}
                   </li>
                 ))}
               </ol>

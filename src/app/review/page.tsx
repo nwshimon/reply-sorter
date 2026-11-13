@@ -6,7 +6,7 @@ import { sortQueue } from "@/lib/review";
 // Reads live data from Postgres on every request (Cache Components is off; see next.config.ts).
 export const dynamic = "force-dynamic";
 
-// The three sections, in this order (POLICY.md section 5). Each can be collapsed.
+// The three sections, in this order (POLICY.md section 5). Each can be collapsed; only Needs human starts open.
 const SECTIONS: { key: QueueSection; title: string; hint: string; empty: string }[] = [
   { key: "needs_human", title: "Needs human", hint: "Check and set the right category.", empty: "Nothing needs a category right now." },
   { key: "confirm_payment", title: "Confirm payment", hint: "The customer says they paid. Confirm the money arrived.", empty: "No payments to confirm." },
@@ -40,8 +40,8 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
         SECTIONS.map(({ key, title, hint, empty }) => {
           const rows = sorted(bySection.get(key)!);
           return (
-            // Native <details>: click the heading to collapse or expand a section. Open by default.
-            <details key={key} open className="group">
+            // Native <details>: click the heading to collapse or expand a section.
+            <details key={key} open={key === "needs_human"} className="group">
               <summary className="flex cursor-pointer list-none items-start gap-2 rounded-lg py-1 hover:bg-neutral-100/60 [&::-webkit-details-marker]:hidden">
                 <span aria-hidden className="mt-1 inline-block text-neutral-400 transition group-open:rotate-90">▸</span>
                 <span>

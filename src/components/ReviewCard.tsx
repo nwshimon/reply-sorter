@@ -38,9 +38,11 @@ export function ReviewCard({ row, section }: { row: ReplyListRow; section: Queue
 
       <ReviewActions replyId={reply.id} section={section} shown={shown} returnTo="/review" />
 
-      <Link href={`/replies/${reply.id}`} className="inline-block text-xs font-medium text-neutral-600 underline underline-offset-2 hover:text-ink">
-        Open details
-      </Link>
+      <div className="flex justify-end">
+        <Link href={`/replies/${reply.id}`} className="text-xs font-medium text-neutral-600 underline underline-offset-2 hover:text-ink">
+          Open details
+        </Link>
+      </div>
     </li>
   );
 }

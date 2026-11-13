@@ -6,7 +6,7 @@ import { CategoryPill } from "@/components/CategoryPill";
 import { LocalTime } from "@/components/LocalTime";
 import { Notice } from "@/components/Notice";
 import { ReasonChips } from "@/components/ReasonChips";
-import { FoundList, RulesApplied } from "@/components/ReplyFacts";
+import { FoundList } from "@/components/ReplyFacts";
 import { ReplyBody } from "@/components/ReplyBody";
 import { ReviewActions } from "@/components/ReviewActions";
 import { CATEGORY_LABELS } from "@/lib/categories";
@@ -26,13 +26,17 @@ const ACTION_LABELS = {
   keep: "Kept as Needs human",
 } as const;
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2 rounded-xl border border-neutral-200 bg-white p-4">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
       {children}
     </section>
   );
+}
+
+function SubHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">{children}</h3>;
 }
 
 export default async function ReplyDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ notice?: string; kind?: string }> }) {
@@ -98,9 +102,9 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
       )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        {/* Left: the reply */}
+        {/* Left: the reply, then one collapsible block with the invoice, what we found and why */}
         <div className="space-y-4">
-          <Section title="Reply">
+          <Card title="Reply">
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt className="text-neutral-500">Subject</dt>
               <dd className="min-w-0 break-words">{reply.subject}</dd>
@@ -112,42 +116,49 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
               </dd>
             </dl>
             <div className="rounded-lg bg-neutral-50 p-3">
-              <ReplyBody body={reply.body} quote={current?.evidenceQuote ?? null} />
+              <ReplyBody body={reply.body} />
             </div>
-          </Section>
+          </Card>
+
+          <details open className="group rounded-xl border border-neutral-200 bg-white">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500 [&::-webkit-details-marker]:hidden">
+              <span aria-hidden className="inline-block text-neutral-400 transition group-open:rotate-90">▸</span>
+              Invoice, what we found and why
+            </summary>
+            <div className="space-y-5 border-t border-neutral-100 p-4">
+              <div>
+                <SubHeading>Invoice</SubHeading>
+                <p className="text-sm">
+                  <span className="font-mono">{reply.invoiceNumber}</span> · {money(reply.invoiceAmount, reply.currency)} {reply.currency}
+                  <span className="block text-xs text-neutral-500">Due {calendarDate(reply.dueDate)}</span>
+                </p>
+              </div>
+
+              <div>
+                <SubHeading>What we found</SubHeading>
+                <FoundList details={details} currency={reply.currency} receivedAt={reply.receivedAt} />
+              </div>
+
+              <div>
+                <SubHeading>Why</SubHeading>
+                {current ? (
+                  <div className="space-y-2">
+                    <p className="text-sm leading-relaxed">{current.reasoning}</p>
+                    <p className="text-xs text-neutral-500">Model confidence: {current.confidence ?? "not given"}</p>
+                    <ReasonChips chips={chips} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-neutral-500">{failedOnly ? "The classifier didn’t produce an answer for this reply." : "This reply hasn’t been classified for the current model and prompt version."}</p>
+                )}
+              </div>
+            </div>
+          </details>
         </div>
 
-        {/* Right: invoice, findings, reasoning, actions, history */}
+        {/* Right: actions, history and the raw model output */}
         <div className="space-y-4">
-          <Section title="Invoice">
-            <p className="text-sm">
-              <span className="font-mono">{reply.invoiceNumber}</span> · {money(reply.invoiceAmount, reply.currency)} {reply.currency}
-              <span className="block text-xs text-neutral-500">Due {calendarDate(reply.dueDate)}</span>
-            </p>
-          </Section>
-
-          <Section title="What we found">
-            <FoundList details={details} currency={reply.currency} receivedAt={reply.receivedAt} />
-          </Section>
-
-          <Section title="Why">
-            {current ? (
-              <>
-                <p className="text-sm leading-relaxed">{current.reasoning}</p>
-                <p className="text-xs text-neutral-500">Model confidence: {current.confidence ?? "not given"}</p>
-                <div className="pt-1">
-                  <p className="mb-1 text-xs font-medium text-neutral-500">Rules applied</p>
-                  <RulesApplied overrides={current.overrideReasons} modelCategory={current.modelCategory} final={current.finalCategory} />
-                </div>
-                <ReasonChips chips={chips} />
-              </>
-            ) : (
-              <p className="text-sm text-neutral-500">{failedOnly ? "The classifier didn’t produce an answer for this reply." : "This reply hasn’t been classified for the current model and prompt version."}</p>
-            )}
-          </Section>
-
           {shownCategory && (
-            <Section title="Actions">
+            <Card title="Actions">
               {section && section !== "needs_human" && (
                 <div className="pb-3">
                   <p className="mb-2 text-sm font-medium">{section === "confirm_payment" ? "Confirm the payment" : "Settle this dispute"}</p>
@@ -165,10 +176,10 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
                   <CategoryChangeForm replyId={reply.id} shown={shownCategory} returnTo={returnTo} />
                 </>
               )}
-            </Section>
+            </Card>
           )}
 
-          <Section title="History">
+          <Card title="History">
             {timeline.length === 0 ? (
               <p className="text-sm text-neutral-500">Nothing yet.</p>
             ) : (
@@ -188,7 +199,7 @@ export default async function ReplyDetailPage({ params, searchParams }: { params
               </ol>
             )}
             <p className="pt-1 text-xs text-neutral-400">Corrections change what the app shows. They never change the evaluation.</p>
-          </Section>
+          </Card>
 
           {current?.rawOutput != null && (
             <details className="rounded-xl border border-neutral-200 bg-white p-4">

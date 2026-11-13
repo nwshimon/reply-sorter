@@ -15,7 +15,6 @@ export default async function EvalPage({ searchParams }: { searchParams: Promise
   const { run } = await searchParams;
   const files = loadEvalFiles();
   const datasets = files.filter((f) => f.set === "dataset").sort(newestFirst);
-  const heldouts = files.filter((f) => f.set === "heldout");
 
   if (datasets.length === 0) {
     return (
@@ -30,7 +29,6 @@ export default async function EvalPage({ searchParams }: { searchParams: Promise
 
   // Default: the latest prompt version.
   const selected = datasets.find((f) => f.file === run) ?? datasets[0];
-  const heldout = heldouts.find((h) => h.promptVersion === selected.promptVersion && h.model === selected.model);
   // v0 baseline = the v0 policy's results (prompt v1), compared with the selected run when that is a later version.
   const baseline = datasets.filter((f) => f.promptVersion === "v1").sort((a, b) => Number(b.model.includes("120b")) - Number(a.model.includes("120b")))[0];
 
@@ -66,13 +64,6 @@ export default async function EvalPage({ searchParams }: { searchParams: Promise
 
       {baseline && baseline.file !== selected.file && <Comparison before={baseline} after={selected} />}
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Held-out results</h2>
-          <p className="text-sm text-neutral-500">12 replies never used for tuning. Reported separately.</p>
-        </div>
-        {heldout ? <Body result={heldout} /> : <p className="rounded-xl border border-dashed border-neutral-300 bg-white p-6 text-sm text-neutral-500">Not run yet for {runLabel(selected)}.</p>}
-      </section>
     </main>
   );
 }

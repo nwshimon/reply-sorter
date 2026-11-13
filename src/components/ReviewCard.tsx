@@ -30,7 +30,7 @@ export function ReviewCard({ row, section }: { row: ReplyListRow; section: Queue
 
       <div className="rounded-lg bg-neutral-50 p-3">
         <ClampedText long={isLongBody(reply.body)}>
-          <ReplyBody body={reply.body} quote={row.evidenceQuote ?? null} />
+          <ReplyBody body={reply.body} />
         </ClampedText>
       </div>
 

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import type { ClassifyInput, ClassifyResult } from "../lib/classifier/classify";
 import { isAutomatic, type Category } from "../lib/categories";
@@ -115,7 +115,6 @@ export async function listReplies(run: ActiveRun = getActiveRun()) {
       needsReview: current.needsReview,
       reviewReasons: current.reviewReasons,
       reasoning: current.reasoning,
-      evidenceQuote: current.evidenceQuote,
       confidence: current.confidence,
       details: current.details,
       correctedTo: correction.toCategory,
@@ -126,6 +125,8 @@ export async function listReplies(run: ActiveRun = getActiveRun()) {
     .from(replies)
     .leftJoin(current, eq(current.replyId, replies.id))
     .leftJoin(correction, eq(correction.replyId, replies.id))
+    // The held-out set is kept out of the interface (lists, queue, counts).
+    .where(ne(replies.source, "heldout"))
     .orderBy(desc(replies.receivedAt), desc(replies.id));
 
   // A reply whose only attempts FAILED has no "current result" (that rule ignores errored rows, so the evaluation can't

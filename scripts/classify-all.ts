@@ -36,7 +36,7 @@ const PAUSE_MS = 25_000;
 const run = getActiveRun();
 const labelsFile = heldout ? "data/heldout-labels.json" : "data/labels.json";
 const labels = new Map(
-  (JSON.parse(readFileSync(labelsFile, "utf8")) as { id: string; v0_category: string }[]).map((l) => [l.id, l.v0_category]),
+  (JSON.parse(readFileSync(labelsFile, "utf8")) as { id: string; display_category: string }[]).map((l) => [l.id, l.display_category]),
 );
 
 let candidates = await repliesBySource(heldout ? "heldout" : "dataset");

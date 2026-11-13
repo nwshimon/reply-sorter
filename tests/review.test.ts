@@ -69,12 +69,12 @@ describe("describeConcerns (plain text beside a queued reply)", () => {
   });
   it("a model-chosen needs_human also shows its other flags after the reasoning (#20: 'Thanks, received.')", () => {
     const c = describeConcerns({ ...base, reviewReasons: ["needs_human", "low_confidence"], overrideReasons: [], reasoning: "The reply is too vague to classify. Nothing else is stated." });
-    expect(c).toEqual(["The reply is too vague to classify.", "Model confidence is not high"]);
+    expect(c).toEqual(["The reply is too vague to classify.", "Model confidence is low"]);
   });
   it("a non-needs_human reply with no flag still says why it is here", () => {
     expect(describeConcerns({ reviewReasons: [], overrideReasons: [], reasoning: "x.", finalCategory: "dispute" })).toEqual(["Flagged for review"]);
   });
   it("shows low confidence as plain text", () => {
-    expect(describeConcerns({ ...base, finalCategory: "paid", reviewReasons: ["low_confidence"], overrideReasons: [] })).toEqual(["Model confidence is not high"]);
+    expect(describeConcerns({ ...base, finalCategory: "paid", reviewReasons: ["low_confidence"], overrideReasons: [] })).toEqual(["Model confidence is low"]);
   });
 });

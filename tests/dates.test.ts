@@ -1,58 +1,68 @@
 import { describe, expect, it } from "vitest";
-import { checkPromisedDate, isValidIsoDate, resolveDatePhrase } from "../src/lib/dates";
+import { checkPromisedDate, daysUntil, isValidIsoDate, PROMISE_HORIZON_DAYS } from "../src/lib/dates";
 
-// Friday 2026-11-13, 17:20 UTC (same received_at as reply #36).
+// Friday 2026-11-13, 17:20 UTC (the received_at of reply #36).
 const FRI = new Date("2026-11-13T17:20:00Z");
-const r = (phrase: string, at = FRI) => resolveDatePhrase(phrase, at);
 
-describe("isValidIsoDate / checkPromisedDate", () => {
-  it("accepts real dates only", () => {
+describe("isValidIsoDate", () => {
+  it("accepts real calendar dates only", () => {
     expect(isValidIsoDate("2026-11-25")).toBe(true);
+    expect(isValidIsoDate("2028-02-29")).toBe(true); // leap year
+    expect(isValidIsoDate("2026-02-29")).toBe(false);
     expect(isValidIsoDate("2026-02-30")).toBe(false);
-    expect(isValidIsoDate("11/25")).toBe(false);
-    expect(isValidIsoDate("2026-1-5")).toBe(false);
+    expect(isValidIsoDate("2026-13-01")).toBe(false);
   });
-  it("rejects dates before the reply was received; the same day is fine", () => {
-    expect(checkPromisedDate("2026-11-13", FRI)).toEqual({ ok: true });
-    expect(checkPromisedDate("2026-11-12", FRI)).toEqual({ ok: false, reason: "before_received" });
-    expect(checkPromisedDate("Nov 20", FRI)).toEqual({ ok: false, reason: "invalid_format" });
+  it("rejects anything that isn't YYYY-MM-DD", () => {
+    for (const s of ["11/25", "Nov 20", "2026-1-5", "2026/11/25", "", "tomorrow", "2026-11-25T00:00:00Z"]) {
+      expect(isValidIsoDate(s), s).toBe(false);
+    }
   });
 });
 
-describe("resolveDatePhrase (POLICY.md rule 2.5 examples)", () => {
-  it("relative days", () => {
-    expect(r("today")).toBe("2026-11-13");
-    expect(r("tomorrow")).toBe("2026-11-14");
-    expect(r("by tomorrow")).toBe("2026-11-14");
+describe("checkPromisedDate", () => {
+  it("accepts the day of the reply and later", () => {
+    expect(checkPromisedDate("2026-11-13", FRI)).toEqual({ ok: true });
+    expect(checkPromisedDate("2027-03-31", FRI)).toEqual({ ok: true });
   });
-  it("day of month rolls to next month once passed", () => {
-    expect(r("the 15th")).toBe("2026-11-15");
-    expect(r("the 1st")).toBe("2026-12-01");
+  it("rejects a date before the reply was received", () => {
+    expect(checkPromisedDate("2026-11-12", FRI)).toEqual({ ok: false, reason: "before_received" });
   });
-  it("end of week / next week / month (weeks Monday–Sunday, 'end' = Friday)", () => {
-    expect(r("end of the week")).toBe("2026-11-13");
-    expect(r("end of next week")).toBe("2026-11-20");
-    expect(r("end of the month")).toBe("2026-11-30");
+  it("rejects a malformed or impossible date", () => {
+    expect(checkPromisedDate("Nov 20", FRI)).toEqual({ ok: false, reason: "invalid_format" });
+    expect(checkPromisedDate("2026-02-30", FRI)).toEqual({ ok: false, reason: "invalid_format" });
   });
-  it("weekdays mean the next one after the reply day", () => {
-    expect(r("Friday")).toBe("2026-11-20");
-    expect(r("Monday")).toBe("2026-11-16");
-    expect(r("next Monday")).toBe("2026-11-16"); // reply is on a Friday: the coming Monday is next week
-    expect(r("next Wednesday", new Date("2026-11-16T12:00:00Z"))).toBe("2026-11-25"); // from a Monday
+  it("compares calendar days, so late-evening UTC replies don't shift the day", () => {
+    const lateUtc = new Date("2026-11-13T23:59:00Z");
+    expect(checkPromisedDate("2026-11-13", lateUtc)).toEqual({ ok: true });
+    expect(checkPromisedDate("2026-11-12", lateUtc)).toEqual({ ok: false, reason: "before_received" });
   });
-  it("numeric and month-name dates roll to next year once passed", () => {
-    expect(r("11/25")).toBe("2026-11-25");
-    expect(r("1/5")).toBe("2027-01-05");
-    expect(r("January 1")).toBe("2027-01-01");
-    expect(r("Nov 20")).toBe("2026-11-20");
-    expect(r("November 20th")).toBe("2026-11-20");
-    expect(r("20 November")).toBe("2026-11-20");
-    expect(r("2026-12-01")).toBe("2026-12-01");
+});
+
+describe("daysUntil: calendar days from received_at", () => {
+  it("counts the dataset cases the policy names", () => {
+    expect(daysUntil("2026-11-15", new Date("2026-11-07T18:48:00Z"))).toBe(8); // #12
+    expect(daysUntil("2027-01-01", new Date("2026-11-14T15:10:00Z"))).toBe(48); // #38
+    expect(daysUntil("2027-03-31", new Date("2026-11-17T18:00:00Z"))).toBe(134); // H09
   });
-  it("returns null for phrases that aren't one date", () => {
-    expect(r("soon")).toBeNull();
-    expect(r("next week")).toBeNull();
-    expect(r("after the holidays")).toBeNull();
-    expect(r("February 30")).toBeNull();
+  it("same day is 0 and next day is 1, whatever the time of day", () => {
+    expect(daysUntil("2026-11-13", FRI)).toBe(0);
+    expect(daysUntil("2026-11-14", FRI)).toBe(1);
+    expect(daysUntil("2026-11-14", new Date("2026-11-13T00:00:01Z"))).toBe(1);
+    expect(daysUntil("2026-11-14", new Date("2026-11-13T23:59:59Z"))).toBe(1);
+  });
+  it("crosses month, year and leap-day boundaries", () => {
+    expect(daysUntil("2026-12-01", new Date("2026-11-30T10:00:00Z"))).toBe(1);
+    expect(daysUntil("2027-01-01", new Date("2026-12-31T10:00:00Z"))).toBe(1);
+    expect(daysUntil("2028-03-01", new Date("2028-02-28T10:00:00Z"))).toBe(2); // 2028 is a leap year
+    expect(daysUntil("2027-03-01", new Date("2027-02-28T10:00:00Z"))).toBe(1);
+  });
+  it("is unaffected by daylight-saving changes", () => {
+    expect(daysUntil("2026-11-02", new Date("2026-10-31T12:00:00Z"))).toBe(2); // US clocks change on Nov 1
+    expect(daysUntil("2026-03-10", new Date("2026-03-07T12:00:00Z"))).toBe(3); // and on Mar 8
+  });
+  it("the horizon boundary: exactly 30 days is not more than 30", () => {
+    expect(PROMISE_HORIZON_DAYS).toBe(30);
+    expect(daysUntil("2026-12-13", FRI)).toBe(30);
+    expect(daysUntil("2026-12-14", FRI)).toBe(31);
   });
 });

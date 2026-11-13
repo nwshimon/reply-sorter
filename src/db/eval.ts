@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import heldoutLabels from "../../data/heldout-labels.json";
 import datasetLabels from "../../data/labels.json";
-import { CATEGORIES, toV0, type Category } from "../lib/categories";
+import { CATEGORIES, displayedCategory, type Category } from "../lib/categories";
 import { computeMetrics, type EvalRow, type Metrics } from "../lib/metrics";
 import { getDb } from "./client";
 import { currentResultRows, repliesBySource, type ActiveRun } from "./queries";
@@ -13,7 +13,8 @@ import { classifications, replies } from "./schema";
 
 export type EvalSet = "dataset" | "heldout";
 
-type LabelRow = { id: string; v0_category: string };
+// data/labels.json (v1): `display_category` is what is scored; category + rank are the internal parent and rank.
+type LabelRow = { id: string; display_category: string };
 const LABEL_FILES: Record<EvalSet, LabelRow[]> = { dataset: datasetLabels, heldout: heldoutLabels };
 
 export type EvalResult = {
@@ -29,8 +30,8 @@ export type EvalResult = {
 export async function buildEval(run: ActiveRun, set: EvalSet = "dataset"): Promise<EvalResult> {
   const labels = new Map<string, Category>();
   for (const l of LABEL_FILES[set]) {
-    if (!(CATEGORIES as readonly string[]).includes(l.v0_category)) throw new Error(`Bad label for ${l.id}: ${l.v0_category}`);
-    labels.set(l.id, l.v0_category as Category);
+    if (!(CATEGORIES as readonly string[]).includes(l.display_category)) throw new Error(`Bad label for ${l.id}: ${l.display_category}`);
+    labels.set(l.id, l.display_category as Category);
   }
 
   const setReplies = await repliesBySource(set);
@@ -44,8 +45,8 @@ export async function buildEval(run: ActiveRun, set: EvalSet = "dataset"): Promi
       id: c.replyId,
       body: bodies.get(c.replyId)!,
       label,
-      // The model alone, before any code rule: its category + rank mapped to v0 (an invalid pair counts as needs_human).
-      model: c.modelCategory && c.modelRank !== null ? (toV0(c.modelCategory, c.modelRank) ?? "needs_human") : "needs_human",
+      // The model alone, before any code rule: its category + rank mapped through POLICY.md section 5 (an invalid pair counts as needs_human).
+      model: c.modelCategory && c.modelRank !== null ? (displayedCategory(c.modelCategory, c.modelRank) ?? "needs_human") : "needs_human",
       final: c.finalCategory,
       needsReview: c.needsReview,
       reasoning: c.reasoning,

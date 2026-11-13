@@ -96,6 +96,8 @@ export function toClassificationRow(replyId: string, r: ClassifyResult): NewClas
     promptVersion: r.promptVersion,
     modelCategory: r.policy.modelCategory,
     modelRank: r.policy.modelRank,
+    finalParent: r.policy.finalParent,
+    finalRank: r.policy.finalRank,
     finalCategory: r.policy.finalCategory,
     overrideReasons: r.policy.overrideReasons,
     confidence: r.rawOutput?.confidence ?? null,

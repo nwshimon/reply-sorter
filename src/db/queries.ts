@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "./client";
-import { classifications, corrections, replies } from "./schema";
+import type { ClassifyInput, ClassifyResult } from "../lib/classifier/classify";
+import { classifications, corrections, replies, type NewClassification, type Reply } from "./schema";
 
 /** Which classifier run is "active": results from other models or prompt versions are ignored. */
 export type ActiveRun = { model: string; promptVersion: string };
@@ -66,3 +67,65 @@ export async function listReplies(run: ActiveRun = getActiveRun()) {
 }
 
 export type ReplyListRow = Awaited<ReturnType<typeof listReplies>>[number];
+
+/** A stored reply as the classifier's input. */
+export function replyToInput(r: Reply): ClassifyInput {
+  return {
+    body: r.body,
+    invoiceNumber: r.invoiceNumber,
+    invoiceAmount: r.invoiceAmount,
+    currency: r.currency,
+    dueDate: r.dueDate,
+    receivedAt: r.receivedAt,
+  };
+}
+
+/**
+ * One classifications row from a classify() result. `raw_output` is the model's validated JSON before
+ * code touched it, so reapply-policy.ts can recompute everything else from it with no model call.
+ */
+export function toClassificationRow(replyId: string, r: ClassifyResult): NewClassification {
+  return {
+    replyId,
+    model: r.model,
+    promptVersion: r.promptVersion,
+    modelCategory: r.policy.modelCategory,
+    modelRank: r.policy.modelRank,
+    finalCategory: r.policy.finalCategory,
+    overrideReasons: r.policy.overrideReasons,
+    confidence: r.rawOutput?.confidence ?? null,
+    reasoning: r.rawOutput?.reasoning ?? null,
+    evidenceQuote: r.rawOutput?.evidence_quote ?? null,
+    details: r.policy.details,
+    flags: r.rawOutput?.flags ?? null,
+    rawOutput: r.rawOutput,
+    needsReview: r.policy.needsReview,
+    reviewReasons: r.policy.reviewReasons,
+    error: r.error,
+    latencyMs: r.latencyMs,
+    promptTokens: r.promptTokens,
+    completionTokens: r.completionTokens,
+  };
+}
+
+export async function saveClassification(replyId: string, r: ClassifyResult) {
+  const [row] = await getDb().insert(classifications).values(toClassificationRow(replyId, r)).returning({ id: classifications.id });
+  return row.id;
+}
+
+/** Ids of replies that already have a current (successful) result for this run. Failed rows don't count. */
+export async function doneReplyIds(run: ActiveRun): Promise<Set<string>> {
+  const current = currentResults(run);
+  const rows = await getDb().select({ id: current.replyId }).from(current);
+  return new Set(rows.map((r) => r.id));
+}
+
+export async function repliesBySource(source: Reply["source"]): Promise<Reply[]> {
+  return getDb().select().from(replies).where(eq(replies.source, source)).orderBy(asc(replies.id));
+}
+
+/** Every current result for a run, keyed by reply id. */
+export async function currentResultRows(run: ActiveRun) {
+  const current = currentResults(run);
+  return getDb().select().from(current);
+}

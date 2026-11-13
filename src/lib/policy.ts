@@ -65,8 +65,11 @@ export function applyPolicy(output: ModelOutput, reply: ReplyContext): PolicyRes
   let parent: Category = output.category;
   let rank = output.rank;
 
+  // Only record a rule as an override if it actually changed the answer: when the model already said
+  // needs_human 0, tier A/B didn't "catch" anything, and logging it would inflate the rules' score.
   const toNeedsHuman = (reason: OverrideReason) => {
-    if (!overrides.includes(reason)) overrides.push(reason);
+    if (parent === "needs_human" && rank === 0) return;
+    overrides.push(reason);
     parent = "needs_human";
     rank = 0;
   };

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import type { ClassifyInput, ClassifyResult } from "../lib/classifier/classify";
 import type { Category } from "../lib/categories";
@@ -59,6 +59,7 @@ export async function listReplies(run: ActiveRun = getActiveRun()) {
       overrideReasons: current.overrideReasons,
       needsReview: current.needsReview,
       reviewReasons: current.reviewReasons,
+      reasoning: current.reasoning,
       details: current.details,
       correctedTo: correction.toCategory,
       correctionNote: correction.note,
@@ -161,4 +162,15 @@ export async function saveCorrection(input: { replyId: string; fromCategory: Cat
 
 export async function insertPastedReply(r: typeof replies.$inferInsert) {
   await getDb().insert(replies).values(r);
+}
+
+/** How many real (non-pasted) replies are in the review queue: the dot beside Review in the sidebar. */
+export async function countNeedsReview(run: ActiveRun = getActiveRun()): Promise<number> {
+  const current = currentResults(run);
+  const [row] = await getDb()
+    .select({ n: sql<number>`count(*)::int` })
+    .from(current)
+    .innerJoin(replies, eq(replies.id, current.replyId))
+    .where(and(eq(current.needsReview, true), ne(replies.source, "pasted")));
+  return row.n;
 }

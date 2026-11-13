@@ -196,9 +196,17 @@ When something is misclassified, fix the prompt if a definition was unclear, add
 
 Server-rendered pages with Server Actions; no client state library.
 
+**Look (decided): light mode only, JoyWork palette.** Colours are sampled from the reference screenshot and live as theme tokens in `src/app/globals.css` (warm off-white page `#FAF8F3`, white cards, tan `#F4DEB1` active tile, gold `#E4B44E` buttons, charcoal text, hairline borders `#E8E5DD`). Tailwind's `neutral` scale is overridden to warm tones, so components use ordinary `neutral-*` classes. No dark mode in v0.
+
+**Coloured pills are categories, and only categories (decided).** Each of the six categories has its own pill colour (`CategoryPill`). Review reasons, flags and overrides are **plain text** ("Concerns: …"), never pills. A reply that needs review is flagged by a **shaded row** (pink wash with a bar on the left) with a legend at the top of All replies, plus a pink dot beside Review in the sidebar.
+
+**Reply row anatomy (from the sketch, `ReplyRow`, used by Review and All replies):** `#id Customer`, the category pill, invoice and date on the right, the message, then on Review a plain-text **Concerns:** line and an **Expand note** toggle (the model's reasoning, extracted details, a link to correct it). For a `needs_human` reply no rule touched, the Concerns line is the first sentence of the model's reasoning, since that is the reason.
+
+**v0 vs v1 (decided):** v0 shows only the six categories. The ranks (v1) still decide the review order behind the scenes, but the tier names stay out of the v0 interface. Evaluation is text-heavy on purpose until the v0 labels are confirmed; refine inferences and model settings after that. **Do not push v0 to production until the user confirms v0 is ready**; v1 labels and ranks come after.
+
 **Layout (decided):** a dashboard with a left sidebar: **Review** (`/`, the home page), **All replies** (`/replies`, id order: dataset, then held-out, then pasted), **Evaluation** (`/eval`). Reply detail is `/replies/[id]`. There is no separate `/try` page: the **paste box sits at the top of Review**, and its result appears right under it.
 
-**Review queue order (decided):** the most concerning first, in four tiers (`lib/review.ts`, tested). The first matching tier wins; inside a tier, oldest `received_at` first.
+**Review queue order (decided):** the most concerning first, in four tiers (`lib/review.ts`, tested; the tiers are not shown as headings in v0). The first matching tier wins; inside a tier, oldest `received_at` first.
 1. **Check first**: a paid claim that code blocked (any `paid_*` override), manipulation language, a status-update request, or a classifier error.
 2. **Needs a decision**: other `needs_human` replies.
 3. **Check the money**: partial payment with no plan, another invoice mentioned, an amount not in the reply.

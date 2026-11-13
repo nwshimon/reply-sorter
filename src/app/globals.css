@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* JoyWork-style palette, sampled from the reference screenshot. Light mode only for now.
+   Overriding Tailwind's neutral scale re-themes every component without touching them. */
+@theme {
+  --color-neutral-50: #faf8f3;
+  --color-neutral-100: #f4f0e6;
+  --color-neutral-200: #e8e5dd;
+  --color-neutral-300: #d9d4c8;
+  --color-neutral-400: #a8a196;
+  --color-neutral-500: #7a736b;
+  --color-neutral-600: #5c564f;
+  --color-neutral-700: #433e38;
+  --color-neutral-800: #2e2925;
+  --color-neutral-900: #231e1b;
+  --color-neutral-950: #14110f;
+
+  --color-ink: #231e1b;
+  --color-tan: #f4deb1; /* active nav tile, tags */
+  --color-cream: #f6f0d8;
+  --color-accent: #e4b44e; /* gold buttons */
+  --color-accent-dark: #665430;
+  --color-positive: #40a55e;
+  /* "needs review" flag: the pink dot in the sketch. A row wash, never a pill. */
+  --color-flag: #e0457b;
+  --color-flag-wash: #fcf0f4;
 }
 
 @theme inline {
@@ -12,11 +33,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #faf8f3;
+  --foreground: #231e1b;
+  color-scheme: light;
 }
 
 body {

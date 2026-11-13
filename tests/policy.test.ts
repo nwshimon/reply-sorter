@@ -261,3 +261,42 @@ describe("code only makes results more cautious", () => {
     }
   });
 });
+
+describe("forwarded remittance advice counts as the identifier (POLICY.md paid 1 (b))", () => {
+  const body = "See remittance below.\n\n---------- Forwarded message ----------\nRemittance Advice\nPayee: Acme Co\nPayment method: ACH\nPayment date: 11/09/2026\nInvoice INV-2246   Amount paid: $3,125.00\nTotal: $3,125.00";
+  const ctx = (invoice = "INV-2246", amount: number | string = 3125) => reply(body, invoice, amount, "2026-11-10T15:00:00Z");
+  const model = (details: object = {}) =>
+    out({ evidence_quote: "Remittance Advice", details: { amount_paid: 3125, invoice_number_mentioned: "INV-2246", ...details } });
+
+  it("#17: remittance advice, this invoice, matching amount, no reference → paid, no review", () => {
+    const r = applyPolicy(model(), ctx());
+    expect(r.finalCategory).toBe("paid");
+    expect(r.overrideReasons).toEqual([]);
+    expect(r.needsReview).toBe(false);
+  });
+  it("still blocked: it doesn't say 'remittance advice'", () => {
+    const plain = reply("Invoice INV-2246 Amount paid: $3,125.00", "INV-2246", 3125, "2026-11-10T15:00:00Z");
+    const r = applyPolicy(out({ evidence_quote: "Amount paid", details: { amount_paid: 3125, invoice_number_mentioned: "INV-2246" } }), plain);
+    expect(r.finalCategory).toBe("needs_human");
+    expect(r.overrideReasons).toContain("paid_no_reference");
+  });
+  it("still blocked: the advice lists a different invoice", () => {
+    const r = applyPolicy(model(), ctx("INV-9999"));
+    expect(r.finalCategory).toBe("needs_human");
+    expect(r.overrideReasons).toEqual(expect.arrayContaining(["paid_no_reference", "paid_other_invoice"]));
+  });
+  it("still blocked: the model named no invoice", () => {
+    const r = applyPolicy(model({ invoice_number_mentioned: null }), ctx());
+    expect(r.finalCategory).toBe("needs_human");
+  });
+  it("still blocked: the amount is missing or differs from the invoice", () => {
+    expect(applyPolicy(model({ amount_paid: null }), ctx()).finalCategory).toBe("needs_human");
+    const off = applyPolicy(model(), ctx("INV-2246", 3500));
+    expect(off.finalCategory).toBe("needs_human");
+    expect(off.overrideReasons).toContain("paid_amount_mismatch");
+  });
+  it("manipulation language still wins over a remittance advice", () => {
+    const r = applyPolicy(out({ ...model(), flags: { manipulation_language: true } }), ctx());
+    expect(r.finalCategory).toBe("needs_human");
+  });
+});

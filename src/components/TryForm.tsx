@@ -2,15 +2,15 @@ import { sortPastedReply } from "@/app/actions";
 import { sampleDueDate } from "@/lib/format";
 
 const input =
-  "mt-1 w-full rounded-md border border-neutral-300 bg-transparent px-2.5 py-1.5 text-sm dark:border-neutral-700";
+  "mt-1 w-full rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
 
-/** Paste a reply, see how it's sorted. Runs the same classify() as the batch script. */
+/** "Try yourself": paste a reply, see how it's sorted. Runs the same classify() as the batch script. */
 export function TryForm({ error }: { error?: string }) {
   const due = sampleDueDate();
   return (
-    <form action={sortPastedReply} className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="text-sm font-medium">Try a reply</h2>
-      <p className="text-xs text-neutral-500">Paste any customer reply to see how it’s sorted. It’s checked against the sample invoice below; change it to test the rules.</p>
+    <form action={sortPastedReply} className="rounded-xl border border-neutral-200 bg-white p-4">
+      <h2 className="text-sm font-semibold">Try yourself</h2>
+      <p className="mt-0.5 text-xs text-neutral-500">Paste a customer reply to see how it’s sorted.</p>
 
       <textarea
         name="body"
@@ -21,28 +21,35 @@ export function TryForm({ error }: { error?: string }) {
         className={`${input} mt-3 resize-y leading-relaxed`}
       />
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <label className="text-xs text-neutral-500">
-          Invoice number
-          <input name="invoiceNumber" defaultValue="INV-1001" required className={input} />
-        </label>
-        <label className="text-xs text-neutral-500">
-          Invoice amount (USD)
-          <input name="invoiceAmount" defaultValue="3500.00" inputMode="decimal" required className={input} />
-        </label>
-        <label className="text-xs text-neutral-500">
-          Due date
-          <input name="dueDate" type="date" defaultValue={due} required className={input} />
-        </label>
-        <div className="flex items-end">
-          <button className="w-full rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300">
-            Sort it
-          </button>
-        </div>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+        {/* The invoice fields stay required (the paid recheck needs them). They're collapsed, but still submitted. */}
+        <details className="group min-w-0 flex-1 text-xs text-neutral-500">
+          <summary className="cursor-pointer list-none hover:text-ink [&::-webkit-details-marker]:hidden">
+            Checked against a sample invoice: INV-1001 · $3,500.00{" "}
+            <span className="underline underline-offset-2">edit</span>
+          </summary>
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <label>
+              Invoice number
+              <input name="invoiceNumber" defaultValue="INV-1001" required className={input} />
+            </label>
+            <label>
+              Invoice amount (USD)
+              <input name="invoiceAmount" defaultValue="3500.00" inputMode="decimal" required className={input} />
+            </label>
+            <label>
+              Due date
+              <input name="dueDate" type="date" defaultValue={due} required className={input} />
+            </label>
+          </div>
+        </details>
+        <button className="rounded-lg bg-accent px-5 py-2 text-xs font-semibold uppercase tracking-wide text-ink shadow-sm transition hover:brightness-95">
+          Submit
+        </button>
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="mt-3 text-sm text-red-700">
           {error}
         </p>
       )}

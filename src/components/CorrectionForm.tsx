@@ -12,7 +12,7 @@ export function CorrectionForm({ replyId, shown }: { replyId: string; shown: Cat
           name="note"
           maxLength={500}
           placeholder="Why this category?"
-          className="mt-1 w-full rounded-md border border-neutral-300 bg-transparent px-3 py-1.5 text-sm dark:border-neutral-700"
+          className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
       </label>
       <div>
@@ -24,7 +24,7 @@ export function CorrectionForm({ replyId, shown }: { replyId: string; shown: Cat
               name="to"
               value={c}
               disabled={c === shown}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium transition hover:bg-neutral-100 disabled:cursor-default disabled:border-transparent disabled:bg-neutral-100 disabled:text-neutral-400 dark:border-neutral-700 dark:hover:bg-neutral-800 dark:disabled:bg-neutral-900"
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium transition hover:bg-tan disabled:cursor-default disabled:border-transparent disabled:bg-neutral-100 disabled:text-neutral-400 disabled:hover:bg-neutral-100"
             >
               {CATEGORY_LABELS[c]}
               {c === shown && " (current)"}

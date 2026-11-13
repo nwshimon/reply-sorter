@@ -2,7 +2,7 @@
   "set": "dataset",
   "model": "openai/gpt-oss-20b",
   "promptVersion": "v1",
-  "generatedAt": "2026-11-13T14:58:05.100Z",
+  "generatedAt": "2026-11-13T15:26:38.686Z",
   "tokens": {
     "prompt": 85349,
     "completion": 10055,
@@ -131,10 +131,10 @@
         {
           "category": "paid",
           "support": 4,
-          "predicted": 3,
-          "truePositives": 3,
+          "predicted": 4,
+          "truePositives": 4,
           "precision": 1,
-          "recall": 0.75
+          "recall": 1
         },
         {
           "category": "promise_to_pay",
@@ -171,20 +171,20 @@
         {
           "category": "needs_human",
           "support": 15,
-          "predicted": 15,
+          "predicted": 14,
           "truePositives": 14,
-          "precision": 0.9333333333333333,
+          "precision": 1,
           "recall": 0.9333333333333333
         }
       ],
       "confusion": {
         "paid": {
-          "paid": 3,
+          "paid": 4,
           "promise_to_pay": 0,
           "dispute": 0,
           "resend_invoice": 0,
           "out_of_office": 0,
-          "needs_human": 1
+          "needs_human": 0
         },
         "promise_to_pay": {
           "paid": 0,
@@ -227,21 +227,19 @@
           "needs_human": 14
         }
       },
-      "accuracy": 0.95,
+      "accuracy": 0.975,
       "falsePaid": {
         "count": 0,
         "ids": []
       },
       "missedPaid": {
-        "count": 1,
-        "ids": [
-          "17"
-        ]
+        "count": 0,
+        "ids": []
       }
     },
-    "reviewRate": 0.45,
-    "reviewed": 18,
-    "wrong": 2,
+    "reviewRate": 0.425,
+    "reviewed": 17,
+    "wrong": 1,
     "wrongNotReviewed": {
       "count": 1,
       "ids": [
@@ -249,29 +247,11 @@
       ]
     },
     "rulesChanged": {
-      "count": 1,
+      "count": 0,
       "fixed": [],
-      "broke": [
-        "17"
-      ]
+      "broke": []
     },
     "mismatches": [
-      {
-        "id": "17",
-        "body": "See remittance below.\n\n---------- Forwarded message ----------\nRemittance Advice\nPayee: JoyWork Demo Services\nPayment method: ACH\nPayment date: 11/09/2026\nInvoice INV-2246   Amount paid: $3,125.00\nTotal: $3,125.00",
-        "label": "paid",
-        "model": "paid",
-        "final": "needs_human",
-        "needsReview": true,
-        "reasoning": "The reply contains a forwarded remittance advice that lists the invoice number INV-2246 and shows the exact amount paid ($3,125.00), matching the invoice total. No conflicting amount or other invoice is mentioned, and there is no indication that the payment is pending or that a different invoice was paid. This satisfies all three conditions for a paid‑1 classification.",
-        "overrideReasons": [
-          "paid_no_reference"
-        ],
-        "reviewReasons": [
-          "needs_human",
-          "rule_override"
-        ]
-      },
       {
         "id": "35",
         "body": "Can you send it again? Also, please send future invoices to ap@northwindfacilities.example instead of me.",

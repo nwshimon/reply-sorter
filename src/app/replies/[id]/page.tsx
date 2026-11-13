@@ -21,7 +21,7 @@ export default async function ReplyDetailPage({ params }: { params: Promise<{ id
   const failedLast = !!lastAttempt?.error && !!current && lastAttempt.id > current.id;
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:px-8">
       <nav className="text-sm text-neutral-500">
         <Link href="/replies" className="hover:underline">
           All replies
@@ -41,14 +41,14 @@ export default async function ReplyDetailPage({ params }: { params: Promise<{ id
       </header>
 
       {failedLast && (
-        <p role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        <p role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           The most recent run for this reply failed ({lastAttempt!.error}). The result below is from the last successful run.
         </p>
       )}
 
       <ResultPanel reply={reply} row={row} correctedTo={corrections[0]?.toCategory ?? null} />
 
-      <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+      <section className="rounded-xl border border-neutral-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-medium">Correct the category</h2>
         <CorrectionForm replyId={reply.id} shown={shownCategory} />
       </section>
@@ -58,14 +58,14 @@ export default async function ReplyDetailPage({ params }: { params: Promise<{ id
           <h2 className="mb-2 text-sm font-medium">Corrections</h2>
           <ul className="space-y-2">
             {corrections.map((c) => (
-              <li key={c.id} className="rounded-md border border-neutral-200 p-3 text-sm dark:border-neutral-800">
+              <li key={c.id} className="rounded-lg border border-neutral-200 bg-white p-3 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   {c.fromCategory ? <CategoryPill category={c.fromCategory} /> : <span className="text-xs text-neutral-400">unclassified</span>}
                   <span aria-hidden className="text-neutral-400">→</span>
                   <CategoryPill category={c.toCategory} />
                   <span className="ml-auto text-xs text-neutral-500">{dateTime(c.createdAt)}</span>
                 </div>
-                {c.note && <p className="mt-2 text-neutral-700 dark:text-neutral-300">{c.note}</p>}
+                {c.note && <p className="mt-2 text-neutral-700">{c.note}</p>}
               </li>
             ))}
           </ul>

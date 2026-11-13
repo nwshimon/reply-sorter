@@ -27,14 +27,14 @@ export function ConfusionMatrix({ matrix }: { matrix: Record<Category, Record<Ca
                 return (
                   <td
                     key={pred}
-                    className={`h-9 min-w-16 border border-neutral-200 text-center tabular-nums dark:border-neutral-800 ${
+                    className={`h-9 min-w-16 border border-neutral-200 text-center tabular-nums ${
                       falsePaid
-                        ? "bg-red-100 font-semibold text-red-800 dark:bg-red-950 dark:text-red-300"
+                        ? "bg-red-100 font-semibold text-red-800"
                         : n === 0
-                          ? "text-neutral-300 dark:text-neutral-700"
+                          ? "text-neutral-300"
                           : diagonal
-                            ? "bg-emerald-50 font-medium text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                            : "bg-amber-50 font-medium text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                            ? "bg-emerald-50 font-medium text-emerald-800"
+                            : "bg-amber-50 font-medium text-amber-800"
                     }`}
                   >
                     {n === 0 ? "·" : n}

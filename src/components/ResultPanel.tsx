@@ -1,9 +1,10 @@
 import { CATEGORY_LABELS, type Category } from "@/lib/categories";
 import type { ModelDetails } from "@/lib/classifier/schema";
 import { dateTime, money } from "@/lib/format";
+import { describeConcerns } from "@/lib/review";
 import type { Classification, Reply } from "@/db/schema";
 import { CategoryPill } from "./CategoryPill";
-import { OverrideList, ReviewReasonChips } from "./ReasonChips";
+import { ConcernsLine, OverrideList } from "./Concerns";
 
 /** The reply body with the model's evidence quote highlighted, if the quote is really in it. */
 export function HighlightedBody({ body, quote }: { body: string; quote: string | null }) {
@@ -11,19 +12,19 @@ export function HighlightedBody({ body, quote }: { body: string; quote: string |
   const at = q ? body.indexOf(q) : -1;
   return (
     <div>
-      <p className="whitespace-pre-wrap break-words rounded-md bg-neutral-50 p-3 text-sm leading-relaxed dark:bg-neutral-900">
+      <p className="whitespace-pre-wrap break-words rounded-lg border border-neutral-200 bg-white p-3 text-sm leading-relaxed">
         {at < 0 ? (
           body
         ) : (
           <>
             {body.slice(0, at)}
-            <mark className="rounded bg-yellow-200 px-0.5 text-neutral-900 dark:bg-yellow-500/40 dark:text-neutral-50">{q}</mark>
+            <mark className="rounded bg-yellow-200 px-0.5 text-neutral-900">{q}</mark>
             {body.slice(at + q.length)}
           </>
         )}
       </p>
       {q && at < 0 && (
-        <p className="mt-1 text-xs text-red-600 dark:text-red-400">The model’s evidence quote isn’t in the reply, so nothing is highlighted.</p>
+        <p className="mt-1 text-xs text-red-600">The model’s evidence quote isn’t in the reply, so nothing is highlighted.</p>
       )}
     </div>
   );
@@ -72,7 +73,7 @@ export function ResultPanel({
       </div>
 
       {row?.error && (
-        <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+        <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
           <p className="font-medium">The classifier failed, so this reply was sent to a person instead of being guessed.</p>
           <p className="mt-1 break-words font-mono text-xs">{row.error}</p>
         </div>
@@ -116,7 +117,7 @@ export function ResultPanel({
       {row && row.reviewReasons.length > 0 && (
         <div>
           <h3 className="mb-1 text-xs uppercase tracking-wide text-neutral-500">Why it’s in the review queue</h3>
-          <ReviewReasonChips reasons={row.reviewReasons} />
+          <ConcernsLine concerns={describeConcerns({ reviewReasons: row.reviewReasons, overrideReasons: row.overrideReasons, reasoning: row.reasoning, finalCategory: row.finalCategory })} />
         </div>
       )}
 

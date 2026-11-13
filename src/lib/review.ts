@@ -1,7 +1,11 @@
-// Review-queue ordering: the most concerning reply first. Pure functions: no database, no env.
+// Review-queue ordering and the plain-text "concerns" shown beside each queued reply.
+// Pure functions: no database, no env.
 //
 // Four risk tiers, then oldest received first inside a tier (the oldest unpaid money is the most
 // urgent). Which tier a reply is in depends only on WHY it was flagged, so it's explainable on screen.
+
+import type { Category } from "./categories";
+import { OVERRIDE_REASONS, REVIEW_REASONS } from "./policy";
 
 export const QUEUE_TIERS = [
   {
@@ -41,4 +45,37 @@ export function sortQueue<T extends QueueInput & { id: string; receivedAt: Date 
       a.receivedAt.getTime() - b.receivedAt.getTime() ||
       a.id.localeCompare(b.id),
   );
+}
+
+export type ConcernsInput = {
+  reviewReasons: readonly string[];
+  overrideReasons: readonly string[];
+  reasoning: string | null;
+  finalCategory: Category | null;
+};
+
+/** The first sentence of the model's reasoning, for a reply with no specific concern. */
+const firstSentence = (text: string) => (text.trim().match(/^.*?[.!?](?=\s|$)/)?.[0] ?? text.trim()).trim();
+
+// Review reasons that only repeat something said elsewhere, so they're left out of the plain-text line:
+// "needs_human" is the category itself, "rule_override" is replaced by the override's own explanation.
+const REDUNDANT = new Set(["needs_human", "rule_override"]);
+
+/**
+ * Plain-text reasons a reply is in the queue, most specific first. Rules that changed the answer are
+ * named by what they found. A needs-human reply that no rule touched (the model itself sent it to a
+ * person) leads with the first sentence of the model's reasoning, since that IS the reason. Then the
+ * other flags, without repeating anything.
+ */
+export function describeConcerns(r: ConcernsInput): string[] {
+  const out: string[] = [];
+  const overrides = new Set(r.overrideReasons);
+  for (const key of r.overrideReasons) out.push(OVERRIDE_REASONS[key as keyof typeof OVERRIDE_REASONS] ?? key);
+  if (r.finalCategory === "needs_human" && r.overrideReasons.length === 0 && r.reasoning) out.push(firstSentence(r.reasoning));
+  for (const key of r.reviewReasons) {
+    if (REDUNDANT.has(key) || overrides.has(key)) continue;
+    out.push(REVIEW_REASONS[key as keyof typeof REVIEW_REASONS] ?? key);
+  }
+  if (out.length === 0) out.push("Flagged for review");
+  return out;
 }

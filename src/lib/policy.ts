@@ -113,10 +113,23 @@ export function applyPolicy(output: ModelOutput, reply: ReplyContext): PolicyRes
   // A category + rank pair outside POLICY.md can't be mapped, so it goes to a person.
   if (!isValidRank(parent, rank)) toNeedsHuman("invalid_rank");
 
+  // The identifier POLICY.md section 3 asks for (paid 1 (b)): a confirmation, reference or trace number,
+  // OR a forwarded remittance advice that lists THIS invoice. A remittance advice has no number of its own,
+  // so code checks the facts around it: the reply says "remittance advice", the model named this invoice,
+  // and a stated amount equals the invoice amount. Anything less still needs a reference.
+  const hasReference = (d.payment_reference ?? "").trim() !== "";
+  const remittanceListsThisInvoice =
+    /remittance\s+advice/i.test(reply.body) &&
+    d.invoice_number_mentioned !== null &&
+    d.invoice_number_mentioned.trim() !== "" &&
+    !mentionsOtherInvoice &&
+    d.amount_paid !== null &&
+    sameAmount(d.amount_paid, reply.invoiceAmount);
+  const hasIdentifier = hasReference || remittanceListsThisInvoice;
+
   // Rule 4.1: recheck every paid 1 the model proposes.
   if (parent === "paid" && rank === 1) {
-    const hasReference = (d.payment_reference ?? "").trim() !== "";
-    if (!hasReference) toPaidRank(2, "paid_no_reference");
+    if (!hasIdentifier) toPaidRank(2, "paid_no_reference");
     if (mentionsOtherInvoice) toPaidRank(3, "paid_other_invoice");
     if (d.amount_paid !== null && !sameAmount(d.amount_paid, reply.invoiceAmount)) {
       toPaidRank(3, "paid_amount_mismatch");
@@ -131,7 +144,7 @@ export function applyPolicy(output: ModelOutput, reply: ReplyContext): PolicyRes
     const strict =
       parent === "paid" &&
       rank === 1 &&
-      (d.payment_reference ?? "").trim() !== "" &&
+      hasIdentifier &&
       d.amount_paid !== null &&
       sameAmount(d.amount_paid, reply.invoiceAmount) &&
       !mentionsOtherInvoice;

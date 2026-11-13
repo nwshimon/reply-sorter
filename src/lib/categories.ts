@@ -9,6 +9,7 @@ export const CATEGORIES = [
   "needs_human",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
+export const isCategory = (x: unknown): x is Category => typeof x === "string" && (CATEGORIES as readonly string[]).includes(x);
 
 export const CONFIDENCES = ["high", "medium", "low"] as const;
 export type Confidence = (typeof CONFIDENCES)[number];

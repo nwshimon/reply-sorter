@@ -94,8 +94,8 @@ reply-sorter/
 ├── drizzle/                 # generated migrations (commit them)
 ├── scripts/                 # run locally: seed.ts, classify-all.ts, reapply-policy.ts (no model calls), eval.ts
 ├── src/
-│   ├── app/                 # pages: / (list), /review, /replies/[id], /try, /eval; actions.ts (Server Actions)
-│   ├── components/          # CategoryPill, ReplyTable, ReviewReasons, CorrectionForm, ConfusionMatrix
+│   ├── app/                 # pages: / (Review queue + paste box), /replies, /replies/[id], /eval, /api/health; actions.ts (Server Actions)
+│   ├── components/          # CategoryPill, ReasonChips, ResultPanel, CorrectionForm, TryForm, ConfusionMatrix, NavLink
 │   ├── db/                  # schema.ts, client.ts, queries.ts
 │   └── lib/
 │       ├── categories.ts    # the category and rank list, defined once; shared by UI, model schema and eval
@@ -107,7 +107,8 @@ reply-sorter/
 │       ├── policy.ts        # rules: v0 mapping, paid recheck, tier A/B, review-queue rules; no I/O
 │       ├── evidence.ts      # evidence quote is an exact substring; amounts appear in the body
 │       ├── dates.ts         # date phrase + received_at → YYYY-MM-DD
-│       └── metrics.ts       # confusion matrix, precision/recall; used by eval.ts AND /eval
+│       ├── metrics.ts       # confusion matrix, precision/recall; used by eval.ts AND /eval
+│       └── review.ts        # review-queue tiers and ordering; no I/O
 └── tests/                   # vitest, no network: policy, evidence, dates, metrics; fixtures/model-outputs.ts
 ```
 
@@ -193,13 +194,26 @@ When something is misclassified, fix the prompt if a definition was unclear, add
 
 ## UI
 
-Server-rendered pages with Server Actions; no client state library. It should look like a tool an AR person uses all day:
+Server-rendered pages with Server Actions; no client state library.
+
+**Layout (decided):** a dashboard with a left sidebar: **Review** (`/`, the home page), **All replies** (`/replies`, id order: dataset, then held-out, then pasted), **Evaluation** (`/eval`). Reply detail is `/replies/[id]`. There is no separate `/try` page: the **paste box sits at the top of Review**, and its result appears right under it.
+
+**Review queue order (decided):** the most concerning first, in four tiers (`lib/review.ts`, tested). The first matching tier wins; inside a tier, oldest `received_at` first.
+1. **Check first**: a paid claim that code blocked (any `paid_*` override), manipulation language, a status-update request, or a classifier error.
+2. **Needs a decision**: other `needs_human` replies.
+3. **Check the money**: partial payment with no plan, another invoice mentioned, an amount not in the reply.
+4. **Low confidence**: low confidence, evidence quote not found, promised-date problems.
+
+**Nothing clears a reply from the queue (decided).** The queue is a permanent list of every flagged reply. A correction changes the category shown (with an "edited" mark) and is kept in the correction history; the reply stays in the queue. Corrections never change the evaluation.
+
+**Pasted replies (decided)** are saved with `source = pasted`, shown under the paste box and in All replies, and **never enter the review queue**, so test replies can't bury real ones.
+ It should look like a tool an AR person uses all day:
 - Each category gets a distinct pill color.
 - The review queue shows **why** each reply is there (reason chips).
 - The detail page shows the model's reasoning, the highlighted evidence quote, and any rule that changed the answer.
 - Correcting takes one click plus an optional note.
-- `/try` shows the full result on the page, including errors.
-- **`/try` handles a body-only paste in the form, not the schema.** The invoice fields stay required in the database: the paid recheck needs them, and without an invoice amount a `/try` reply could never be `paid`. So the form:
+- The paste box shows the full result on the page, including errors. Its Server Action sets a 12 s timeout per attempt (not 15), so a timeout plus the one retry still fits inside the page's `maxDuration = 30`.
+- **The paste box handles a body-only paste in the form, not the schema.** The invoice fields stay required in the database: the paid recheck needs them, and without an invoice amount a `/try` reply could never be `paid`. So the form:
   - prefills an **editable sample invoice** (number, amount, due date) and defaults sender and subject to "Pasted reply";
   - sets `received_at` to now and generates an id `P-<short random>` (`replies.id` is plain text, not generated), with `source = pasted`.
   The prefilled invoice also demos the paid recheck live: paste "Wired $3,150, trace 0210…", run it, change the invoice amount, run it again.
@@ -240,7 +254,7 @@ Deploy after every step, so something working is always online.
 2. `db/schema.ts` → `db:push` → `seed.ts` → list page on plain data. Deploy.
 3. `categories.ts`, `policy.ts`, `evidence.ts`, `dates.ts` and their tests. No model yet.
 4. `classifier/` → check the pipeline on 2–3 replies with 20b (`--only`) → `reapply-policy.ts` → `eval.ts` → one full 40 run with 120b → first `results-v1-gpt-oss-120b.json`.
-5. `/review`, `/replies/[id]` with the correction form, `/try`, `/eval`. Deploy.
+5. Review page with the paste box, `/replies`, `/replies/[id]` with the correction form, `/eval`. Deploy. (Built; production shows results only for the model it's set to, so run the 120b classification before relying on the deployed pages.)
 6. Held-out run, README, export `ai-logs/`.
 
 **If short on time, cut in this order:** Gemini backup, stability check, `dates.ts` (store the phrase as written and note it), visual polish. **Never cut** `policy.ts` and its tests, the fallback to `needs_human`, or the evaluation.

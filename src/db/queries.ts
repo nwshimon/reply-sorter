@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import type { ClassifyInput, ClassifyResult } from "../lib/classifier/classify";
+import type { Category } from "../lib/categories";
 import { classifications, corrections, replies, type NewClassification, type Reply } from "./schema";
 
 /** Which classifier run is "active": results from other models or prompt versions are ignored. */
@@ -53,12 +54,15 @@ export async function listReplies(run: ActiveRun = getActiveRun()) {
   return getDb()
     .select({
       reply: replies,
+      modelCategory: current.modelCategory,
       finalCategory: current.finalCategory,
+      overrideReasons: current.overrideReasons,
       needsReview: current.needsReview,
       reviewReasons: current.reviewReasons,
       details: current.details,
       correctedTo: correction.toCategory,
-      shownCategory: sql<string | null>`coalesce(${correction.toCategory}, ${current.finalCategory})`,
+      correctionNote: correction.note,
+      shownCategory: sql<Category | null>`coalesce(${correction.toCategory}, ${current.finalCategory})`,
     })
     .from(replies)
     .leftJoin(current, eq(current.replyId, replies.id))
@@ -128,4 +132,33 @@ export async function repliesBySource(source: Reply["source"]): Promise<Reply[]>
 export async function currentResultRows(run: ActiveRun) {
   const current = currentResults(run);
   return getDb().select().from(current);
+}
+
+/** One reply with everything its detail page needs. */
+export async function getReplyDetail(id: string, run: ActiveRun = getActiveRun()) {
+  const db = getDb();
+  const [reply] = await db.select().from(replies).where(eq(replies.id, id));
+  if (!reply) return null;
+
+  const current = currentResults(run);
+  const [currentRow] = await db.select().from(current).where(eq(current.replyId, id));
+  // The newest attempt of any kind, so a failed run can be shown (it is never the "current" result).
+  const [lastAttempt] = await db
+    .select()
+    .from(classifications)
+    .where(and(eq(classifications.replyId, id), eq(classifications.model, run.model), eq(classifications.promptVersion, run.promptVersion)))
+    .orderBy(desc(classifications.id))
+    .limit(1);
+  const history = await db.select().from(corrections).where(eq(corrections.replyId, id)).orderBy(desc(corrections.id));
+
+  const shownCategory: Category | null = history[0]?.toCategory ?? currentRow?.finalCategory ?? null;
+  return { reply, current: currentRow ?? null, lastAttempt: lastAttempt ?? null, corrections: history, shownCategory };
+}
+
+export async function saveCorrection(input: { replyId: string; fromCategory: Category | null; toCategory: Category; note: string | null }) {
+  await getDb().insert(corrections).values(input);
+}
+
+export async function insertPastedReply(r: typeof replies.$inferInsert) {
+  await getDb().insert(replies).values(r);
 }

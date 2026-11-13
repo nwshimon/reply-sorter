@@ -1,85 +1,88 @@
-import { listReplies, type ReplyListRow } from "@/db/queries";
+import Link from "next/link";
+import { getReplyDetail, listReplies } from "@/db/queries";
+import { CategoryPill } from "@/components/CategoryPill";
+import { ReviewReasonChips } from "@/components/ReasonChips";
+import { ResultPanel } from "@/components/ResultPanel";
+import { TryForm } from "@/components/TryForm";
+import { money, shortDate } from "@/lib/format";
+import { QUEUE_TIERS, queueTier, sortQueue } from "@/lib/review";
 
 // Reads live data from Postgres on every request (Cache Components is off; see next.config.ts).
 export const dynamic = "force-dynamic";
+// The paste box's Server Action runs inside this route: classify() needs up to ~25 s (two 12 s attempts).
+export const maxDuration = 30;
 
-const money = (amount: number, currency: string) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
+export default async function ReviewPage({ searchParams }: { searchParams: Promise<{ pasted?: string; error?: string }> }) {
+  const { pasted, error } = await searchParams;
 
-const day = (d: Date) =>
-  d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const [rows, pastedDetail] = await Promise.all([listReplies(), pasted ? getReplyDetail(pasted) : null]);
 
-export default async function RepliesPage() {
-  const rows = await listReplies();
-  const dataset = rows.filter((r) => r.reply.source === "dataset");
-  const heldout = rows.filter((r) => r.reply.source === "heldout");
-  const pasted = rows.filter((r) => r.reply.source === "pasted");
-  const classified = rows.filter((r) => r.shownCategory !== null).length;
-
-  return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Replies</h1>
-        <p className="text-sm text-neutral-500">
-          {rows.length} replies · {classified} classified
-        </p>
-      </div>
-
-      <Section title="Dataset" rows={dataset} />
-      <Section
-        title="Held-out set"
-        hint="Never used to tune the prompt; scored separately."
-        rows={heldout}
-      />
-      {pasted.length > 0 && <Section title="Pasted" rows={pasted} />}
-    </main>
+  // Pasted replies are shown right under the box and kept in All replies, never in the queue.
+  const queue = sortQueue(
+    rows
+      .filter((r) => r.reply.source !== "pasted" && r.needsReview)
+      .map((r) => ({ ...r, id: r.reply.id, receivedAt: r.reply.receivedAt, reviewReasons: r.reviewReasons ?? [], overrideReasons: r.overrideReasons ?? [] })),
   );
-}
 
-function Section({ title, hint, rows }: { title: string; hint?: string; rows: ReplyListRow[] }) {
   return (
-    <section className="mt-8">
-      <h2 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-        {title} <span className="text-neutral-400">({rows.length})</span>
-      </h2>
-      {hint && <p className="text-xs text-neutral-500">{hint}</p>}
-      <div className="mt-2 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
-            <tr>
-              <th className="px-3 py-2 font-medium">#</th>
-              <th className="px-3 py-2 font-medium">Customer</th>
-              <th className="px-3 py-2 font-medium">Reply</th>
-              <th className="px-3 py-2 font-medium">Invoice</th>
-              <th className="px-3 py-2 text-right font-medium">Amount</th>
-              <th className="px-3 py-2 font-medium">Received</th>
-              <th className="px-3 py-2 font-medium">Category</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-            {rows.map(({ reply, shownCategory }) => (
-              <tr key={reply.id} className="align-top hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
-                <td className="px-3 py-2 font-mono text-xs text-neutral-500">{reply.id}</td>
-                <td className="px-3 py-2">
-                  <div className="font-medium">{reply.customer}</div>
-                  <div className="text-xs text-neutral-500">{reply.sender}</div>
-                </td>
-                <td className="max-w-md px-3 py-2">
-                  <p className="line-clamp-2 text-neutral-700 dark:text-neutral-300">{reply.body}</p>
-                </td>
-                <td className="px-3 py-2 font-mono text-xs">{reply.invoiceNumber}</td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {money(reply.invoiceAmount, reply.currency)}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{day(reply.receivedAt)}</td>
-                <td className="whitespace-nowrap px-3 py-2">
-                  {shownCategory ?? <span className="text-xs text-neutral-400">Not classified yet</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:px-6">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">Review</h1>
+        <p className="text-sm text-neutral-500">
+          {queue.length} {queue.length === 1 ? "reply needs" : "replies need"} a person, most concerning first. A correction changes the category you see; the reply stays here.
+        </p>
+      </header>
+
+      <TryForm error={error} />
+
+      {pastedDetail && (
+        <section id="result" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 className="text-sm font-medium">Result for your pasted reply</h2>
+            <Link href={`/replies/${pastedDetail.reply.id}`} className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-200">
+              Open full detail · {pastedDetail.reply.id}
+            </Link>
+          </div>
+          <ResultPanel reply={pastedDetail.reply} row={pastedDetail.lastAttempt} correctedTo={pastedDetail.corrections[0]?.toCategory ?? null} />
+        </section>
+      )}
+
+      {queue.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
+          Nothing to review. Replies show up here once they’re classified and something needs a person’s eye.
+        </p>
+      ) : (
+        QUEUE_TIERS.map(({ tier, title, hint }) => {
+          const inTier = queue.filter((r) => queueTier(r) === tier);
+          if (inTier.length === 0) return null;
+          return (
+            <section key={tier}>
+              <h2 className="text-sm font-medium">
+                {title} <span className="font-normal text-neutral-400">({inTier.length})</span>
+              </h2>
+              <p className="text-xs text-neutral-500">{hint}</p>
+              <ul className="mt-2 divide-y divide-neutral-100 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+                {inTier.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/replies/${r.id}`} className="block space-y-2 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="font-mono text-xs text-neutral-500">#{r.id}</span>
+                        <span className="text-sm font-medium">{r.reply.customer}</span>
+                        <CategoryPill category={r.shownCategory} edited={!!r.correctedTo} />
+                        <span className="ml-auto whitespace-nowrap text-xs text-neutral-500">
+                          {r.reply.invoiceNumber} · {money(r.reply.invoiceAmount, r.reply.currency)} · {shortDate(r.reply.receivedAt)}
+                        </span>
+                      </div>
+                      <p className="line-clamp-2 text-sm text-neutral-700 dark:text-neutral-300">{r.reply.body}</p>
+                      <ReviewReasonChips reasons={r.reviewReasons} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
+      )}
+    </main>
   );
 }

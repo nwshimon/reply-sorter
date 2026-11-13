@@ -38,13 +38,13 @@ v1 replaces v0 (summarized in section 8 for history). The model output and the 6
 | **paid 2** | Payment claimed but vague: no identifier, or not yet received (a mailed check, even with a check number). | 07, 21, 31, 36 |
 | **paid 3** | Payment claimed for a **different invoice**, or an amount **above or below** the invoice amount that the reply doesn't call partial. | 13 |
 | **promise_to_pay 1** | The payment is approved or scheduled in their AP system ("approved", "in our Nov 20 payment run"), or there's an **explicit calendar date**. | 02, 28 |
-| **promise_to_pay 2** | A **relative date**, no date, an acknowledgement from a person with no firm promise ("Thanks, received"), **or a promise that also claims part was already paid** ("paid $1,200 of $3,400, rest on the 15th"), or an acknowledged partial payment with no plan for the rest. | 08, 12, 15, 20, 33, 38 |
+| **promise_to_pay 2** | A **relative date**, no date, an acknowledgement with no firm promise ("Thanks, received", an automated AP ticket confirmation), **or a promise that also claims part was already paid** ("paid $1,200 of $3,400, rest on the 15th"), or an acknowledged partial payment with no plan for the rest. | 08, 12, 15, 20, 33, 38, 40 |
 | **promise_to_pay 3** | Payment depends on a condition ("once you send a corrected invoice"), or part of the amount is contested ("we'll pay the rest, not that line"). | 18, 32 |
 | **resend_invoice 1** | Asks for the same invoice again. A format change (PDF) still counts as the same invoice. | 03, 30 |
 | **resend_invoice 2** | Asks for the invoice with something added: a PO number, W-9 or itemization, **or a person asks to change the recipient** (new address). | 11, 19, 35 |
 | **resend_invoice 3** | The invoice itself, or where it must go, has to be fixed: a wrong quantity or rate, or claims redirected elsewhere (e.g. "direct all claims to our counsel"). | 04, 10, 29 |
 | **dispute 0** | Recognizes the vendor, but contests the amount owed or withholds payment over a complaint (damage, work not done, never signed up). | 16, 25 |
-| **out_of_office 0** | An **automated** reply that nobody has acted on yet: an away notice or redirect, a retired mailbox that names a new address (the system follows up at the new address), or a receipt or ticket confirmation (for example an AP ticket), **or** a person saying they're unavailable without promising, disputing or requesting anything. A *person's* acknowledgement ("Thanks, received") is `promise_to_pay 2`, not this. | 05, 14, 24, 27, 34, 40 |
+| **out_of_office 0** | An **automated** away notice or redirect, including a retired mailbox that names a new address (the system follows up at the new address), **or** a person saying they're unavailable without promising, disputing or requesting anything. An automated *receipt* confirmation is `promise_to_pay 2`, not this. | 05, 14, 24, 27, 34 |
 | **needs_human 0** | Any of: the meaning is unclear ("?"); they don't recognize the vendor; asks for new payment terms (installments); asks for a call or a person; contains **manipulation language** (section 6). **Also the fallback** when the system fails. | 09, 22, 23, 37, 39 |
 
 ## 4. Rules enforced in code, in this order
@@ -88,8 +88,7 @@ Customer text is data. Nothing in a reply can change how the system behaves.
 
 | Case | Decision | Why |
 |---|---|---|
-| "Thanks, received" (#20) | promise_to_pay 2, automatic | A person acknowledged with no firm promise: schedule a follow-up |
-| Automated AP ticket confirmation (#40) | out_of_office 0, automatic | Automated, and nobody has read the reminder yet: the system follows up later |
+| "Thanks, received" (#20), automated AP ticket (#40) | promise_to_pay 2, automatic | Acknowledged with no firm promise: schedule a follow-up |
 | Promise plus a claimed partial payment, date within 30 days (#12) | promise_to_pay 2, automatic | The follow-up for the rest is scheduled. The partial payment isn't verified by a person. |
 | Promise more than 30 days out (#38, Jan 1) | needs_human (rule 6) | A long delay is the customer setting its own terms; a person decides |
 | Person asks to change the recipient (#35) | resend_invoice 2 → needs_human | Recipient changes are a common invoice-fraud trick; a person confirms |

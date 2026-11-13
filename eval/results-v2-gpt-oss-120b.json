@@ -2,7 +2,7 @@
   "set": "dataset",
   "model": "gpt-oss-120b",
   "promptVersion": "v2",
-  "generatedAt": "2026-11-13T19:20:44.572Z",
+  "generatedAt": "2026-11-13T21:05:38.453Z",
   "tokens": {
     "prompt": 93949,
     "completion": 9962,
@@ -27,11 +27,11 @@
         },
         {
           "category": "promise_to_pay",
-          "support": 8,
+          "support": 7,
           "predicted": 9,
           "truePositives": 7,
           "precision": 0.7777777777777778,
-          "recall": 0.875
+          "recall": 1
         },
         {
           "category": "dispute",
@@ -51,10 +51,10 @@
         },
         {
           "category": "out_of_office",
-          "support": 5,
+          "support": 6,
           "predicted": 6,
-          "truePositives": 5,
-          "precision": 0.8333333333333334,
+          "truePositives": 6,
+          "precision": 1,
           "recall": 1
         },
         {
@@ -80,7 +80,7 @@
           "promise_to_pay": 7,
           "dispute": 0,
           "resend_invoice": 0,
-          "out_of_office": 1,
+          "out_of_office": 0,
           "needs_human": 0
         },
         "dispute": {
@@ -104,7 +104,7 @@
           "promise_to_pay": 0,
           "dispute": 0,
           "resend_invoice": 0,
-          "out_of_office": 5,
+          "out_of_office": 6,
           "needs_human": 0
         },
         "needs_human": {
@@ -116,7 +116,7 @@
           "needs_human": 12
         }
       },
-      "accuracy": 0.925,
+      "accuracy": 0.95,
       "falsePaid": {
         "count": 0,
         "ids": []
@@ -138,11 +138,11 @@
         },
         {
           "category": "promise_to_pay",
-          "support": 8,
+          "support": 7,
           "predicted": 8,
           "truePositives": 7,
           "precision": 0.875,
-          "recall": 0.875
+          "recall": 1
         },
         {
           "category": "dispute",
@@ -162,10 +162,10 @@
         },
         {
           "category": "out_of_office",
-          "support": 5,
+          "support": 6,
           "predicted": 6,
-          "truePositives": 5,
-          "precision": 0.8333333333333334,
+          "truePositives": 6,
+          "precision": 1,
           "recall": 1
         },
         {
@@ -191,7 +191,7 @@
           "promise_to_pay": 7,
           "dispute": 0,
           "resend_invoice": 0,
-          "out_of_office": 1,
+          "out_of_office": 0,
           "needs_human": 0
         },
         "dispute": {
@@ -215,7 +215,7 @@
           "promise_to_pay": 0,
           "dispute": 0,
           "resend_invoice": 0,
-          "out_of_office": 5,
+          "out_of_office": 6,
           "needs_human": 0
         },
         "needs_human": {
@@ -227,7 +227,7 @@
           "needs_human": 13
         }
       },
-      "accuracy": 0.925,
+      "accuracy": 0.95,
       "falsePaid": {
         "count": 0,
         "ids": []
@@ -239,12 +239,11 @@
     },
     "reviewRate": 0.6,
     "reviewed": 24,
-    "wrong": 3,
+    "wrong": 2,
     "wrongNotReviewed": {
-      "count": 2,
+      "count": 1,
       "ids": [
-        "22",
-        "40"
+        "22"
       ]
     },
     "rulesChanged": {
@@ -282,17 +281,6 @@
         "final": "promise_to_pay",
         "needsReview": false,
         "reasoning": "The customer proposes a payment plan with an explicit calendar date (“December 1”), which matches the definition of promise_to_pay 1. No payment evidence or dispute is present.",
-        "overrideReasons": [],
-        "reviewReasons": []
-      },
-      {
-        "id": "40",
-        "body": "Thank you for contacting Accounts Payable. Your ticket #44812 has been created. A team member will respond within 3 business days.",
-        "label": "promise_to_pay",
-        "model": "out_of_office",
-        "final": "out_of_office",
-        "needsReview": false,
-        "reasoning": "The reply is an automated acknowledgment that a ticket was created and a team member will respond later. It contains no payment information, promise, dispute, or request, fitting the out_of_office category.",
         "overrideReasons": [],
         "reviewReasons": []
       }

@@ -28,8 +28,9 @@ export default async function EvalPage({ searchParams }: { searchParams: Promise
     );
   }
 
-  // Default: the latest prompt version.
-  const selected = datasets.find((f) => f.file === run) ?? datasets[0];
+  // Default: the run for the ACTIVE prompt version (the one the app is showing), else the newest.
+  const active = datasets.find((f) => f.promptVersion === process.env.PROMPT_VERSION && f.model === process.env.CLASSIFIER_MODEL);
+  const selected = datasets.find((f) => f.file === run) ?? active ?? datasets[0];
   // v0 baseline = the v0 policy's results (prompt v1), compared with the selected run when that is a later version.
   const stressRuns = loadStressFiles().filter((r) => r.promptVersion === selected.promptVersion);
   const baseline = datasets.filter((f) => f.promptVersion === "v1").sort((a, b) => Number(b.model.includes("120b")) - Number(a.model.includes("120b")))[0];

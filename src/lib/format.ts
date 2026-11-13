@@ -11,3 +11,7 @@ export const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
 /** The prefilled due date in the paste box: five days ago, so the sample invoice is overdue. Evaluated per request. */
 export const sampleDueDate = () => isoDay(new Date(Date.now() - 5 * 86_400_000));
+
+/** A calendar date "2026-11-15" as "Nov 15, 2026". Calendar dates have no time zone, so no shifting. */
+export const calendarDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });

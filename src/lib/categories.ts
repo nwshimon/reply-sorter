@@ -46,12 +46,25 @@ export function isValidRank(parent: Category, rank: number): boolean {
 export const AUTOMATIC_CATEGORIES: readonly Category[] = ["promise_to_pay", "resend_invoice", "out_of_office"];
 export const isAutomatic = (c: Category): boolean => AUTOMATIC_CATEGORIES.includes(c);
 
-/** Display labels. "paid" is a credible claim, not verified payment (no bank data). */
+/**
+ * Display labels and pill colours, defined once. Every pill shows its text label too, never colour alone.
+ * Full class names (not built from strings) so Tailwind can see them. "Paid" is a credible claim until a person
+ * confirms it (the review queue's ✓ / ✗), because there is no bank data.
+ */
 export const CATEGORY_LABELS: Record<Category, string> = {
-  paid: "Paid (claimed)",
+  paid: "Paid",
   promise_to_pay: "Promise to pay",
-  dispute: "Dispute",
   resend_invoice: "Resend invoice",
+  dispute: "Dispute",
   out_of_office: "Out of office",
   needs_human: "Needs human",
+};
+
+export const CATEGORY_STYLES: Record<Category, string> = {
+  paid: "bg-green-100 text-green-800 ring-green-600/30", // green
+  promise_to_pay: "bg-blue-100 text-blue-800 ring-blue-600/30", // blue
+  resend_invoice: "bg-teal-100 text-teal-800 ring-teal-600/30", // teal
+  dispute: "bg-red-100 text-red-800 ring-red-600/30", // red
+  out_of_office: "bg-neutral-100 text-neutral-600 ring-neutral-300", // gray
+  needs_human: "bg-orange-100 text-orange-800 ring-orange-600/30", // orange
 };

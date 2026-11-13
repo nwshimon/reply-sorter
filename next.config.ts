@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // Cache Components is off on purpose: every page reads live data from Postgres
   // (corrections must show on the next load), so pages opt into per-request rendering
   // with `export const dynamic = "force-dynamic"` instead of Suspense + "use cache".
+  // /eval reads the committed eval/*.json files at request time; tell the deployment to ship them with the page.
+  outputFileTracingIncludes: { "/eval": ["./eval/**/*"] },
   turbopack: {
     rules: {
       "*.css": {

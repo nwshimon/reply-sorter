@@ -1,0 +1,86 @@
+[
+  {
+    "id": "H01",
+    "category": "promise_to_pay",
+    "rank": 2,
+    "v0_category": "promise_to_pay",
+    "note": "Acknowledged partial, no plan for the rest. Must also land in the review queue."
+  },
+  {
+    "id": "H02",
+    "category": "paid",
+    "rank": 2,
+    "v0_category": "needs_human",
+    "note": "Check in the mail: not yet received, even with a number and matching amount."
+  },
+  {
+    "id": "H03",
+    "category": "paid",
+    "rank": 1,
+    "v0_category": "paid",
+    "note": "Tier B with strict evidence: identifier, matching amount, same invoice."
+  },
+  {
+    "id": "H04",
+    "category": "needs_human",
+    "rank": 0,
+    "v0_category": "needs_human",
+    "note": "Tier B without a stated amount: not strict enough."
+  },
+  {
+    "id": "H05",
+    "category": "needs_human",
+    "rank": 0,
+    "v0_category": "needs_human",
+    "note": "Tier A manipulation language, even with a trace number."
+  },
+  {
+    "id": "H06",
+    "category": "out_of_office",
+    "rank": 0,
+    "v0_category": "out_of_office",
+    "note": "A person, not automated, with no commitment."
+  },
+  {
+    "id": "H07",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "v0_category": "promise_to_pay",
+    "note": "Promise outranks out of office; Nov 23 is a specific date."
+  },
+  {
+    "id": "H08",
+    "category": "paid",
+    "rank": 3,
+    "v0_category": "needs_human",
+    "note": "Amount above the invoice conflicts."
+  },
+  {
+    "id": "H09",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "v0_category": "promise_to_pay",
+    "note": "Far-off but specific date; no limit in v0."
+  },
+  {
+    "id": "H10",
+    "category": "resend_invoice",
+    "rank": 2,
+    "v0_category": "needs_human",
+    "note": "Something added (itemization), total unchanged."
+  },
+  {
+    "id": "H11",
+    "category": "dispute",
+    "rank": 0,
+    "v0_category": "dispute",
+    "note": "Payment claim plus contested amount: dispute outranks paid."
+  },
+  {
+    "id": "H12",
+    "category": "promise_to_pay",
+    "rank": 1,
+    "v0_category": "promise_to_pay",
+    "note": "Spanish: 'We'll pay it Friday, November 20.' Specific date."
+  }
+]

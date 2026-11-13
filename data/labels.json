@@ -274,9 +274,9 @@
   },
   {
     "id": "40",
-    "category": "promise_to_pay",
-    "rank": 2,
-    "display_category": "promise_to_pay",
-    "note": "Automated AP ticket confirmation: acknowledged, schedule a follow-up."
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "note": "Automated AP ticket confirmation: nobody has read the reminder yet, so the system follows up later."
   }
 ]

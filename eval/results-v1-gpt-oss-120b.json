@@ -1,0 +1,301 @@
+{
+  "set": "dataset",
+  "model": "openai/gpt-oss-120b",
+  "promptVersion": "v1",
+  "generatedAt": "2026-11-13T22:00:21.705Z",
+  "tokens": {
+    "prompt": 85349,
+    "completion": 11762,
+    "total": 97111
+  },
+  "metrics": {
+    "coverage": {
+      "scored": 40,
+      "total": 40,
+      "failed": 0,
+      "missing": 0
+    },
+    "model": {
+      "perCategory": [
+        {
+          "category": "paid",
+          "support": 4,
+          "predicted": 3,
+          "truePositives": 3,
+          "precision": 1,
+          "recall": 0.75
+        },
+        {
+          "category": "promise_to_pay",
+          "support": 7,
+          "predicted": 8,
+          "truePositives": 7,
+          "precision": 0.875,
+          "recall": 1
+        },
+        {
+          "category": "dispute",
+          "support": 6,
+          "predicted": 6,
+          "truePositives": 6,
+          "precision": 1,
+          "recall": 1
+        },
+        {
+          "category": "resend_invoice",
+          "support": 2,
+          "predicted": 3,
+          "truePositives": 2,
+          "precision": 0.6666666666666666,
+          "recall": 1
+        },
+        {
+          "category": "out_of_office",
+          "support": 6,
+          "predicted": 6,
+          "truePositives": 6,
+          "precision": 1,
+          "recall": 1
+        },
+        {
+          "category": "needs_human",
+          "support": 15,
+          "predicted": 14,
+          "truePositives": 13,
+          "precision": 0.9285714285714286,
+          "recall": 0.8666666666666667
+        }
+      ],
+      "confusion": {
+        "paid": {
+          "paid": 3,
+          "promise_to_pay": 0,
+          "dispute": 0,
+          "resend_invoice": 0,
+          "out_of_office": 0,
+          "needs_human": 1
+        },
+        "promise_to_pay": {
+          "paid": 0,
+          "promise_to_pay": 7,
+          "dispute": 0,
+          "resend_invoice": 0,
+          "out_of_office": 0,
+          "needs_human": 0
+        },
+        "dispute": {
+          "paid": 0,
+          "promise_to_pay": 0,
+          "dispute": 6,
+          "resend_invoice": 0,
+          "out_of_office": 0,
+          "needs_human": 0
+        },
+        "resend_invoice": {
+          "paid": 0,
+          "promise_to_pay": 0,
+          "dispute": 0,
+          "resend_invoice": 2,
+          "out_of_office": 0,
+          "needs_human": 0
+        },
+        "out_of_office": {
+          "paid": 0,
+          "promise_to_pay": 0,
+          "dispute": 0,
+          "resend_invoice": 0,
+          "out_of_office": 6,
+          "needs_human": 0
+        },
+        "needs_human": {
+          "paid": 0,
+          "promise_to_pay": 1,
+          "dispute": 0,
+          "resend_invoice": 1,
+          "out_of_office": 0,
+          "needs_human": 13
+        }
+      },
+      "accuracy": 0.925,
+      "falsePaid": {
+        "count": 0,
+        "ids": []
+      },
+      "missedPaid": {
+        "count": 1,
+        "ids": [
+          "26"
+        ]
+      }
+    },
+    "final": {
+      "perCategory": [
+        {
+          "category": "paid",
+          "support": 4,
+          "predicted": 3,
+          "truePositives": 3,
+          "precision": 1,
+          "recall": 0.75
+        },
+        {
+          "category": "promise_to_pay",
+          "support": 7,
+          "predicted": 8,
+          "truePositives": 7,
+          "precision": 0.875,
+          "recall": 1
+        },
+        {
+          "category": "dispute",
+          "support": 6,
+          "predicted": 6,
+          "truePositives": 6,
+          "precision": 1,
+          "recall": 1
+        },
+        {
+          "category": "resend_invoice",
+          "support": 2,
+          "predicted": 3,
+          "truePositives": 2,
+          "precision": 0.6666666666666666,
+          "recall": 1
+        },
+        {
+          "category": "out_of_office",
+          "support": 6,
+          "predicted": 6,
+          "truePositives": 6,
+          "precision": 1,
+          "recall": 1
+        },
+        {
+          "category": "needs_human",
+          "support": 15,
+          "predicted": 14,
+          "truePositives": 13,
+          "precision": 0.9285714285714286,
+          "recall": 0.8666666666666667
+        }
+      ],
+      "confusion": {
+        "paid": {
+          "paid": 3,
+          "promise_to_pay": 0,
+          "dispute": 0,
+          "resend_invoice": 0,
+          "out_of_office": 0,
+          "needs_human": 1
+        },
+        "promise_to_pay": {
+          "paid": 0,
+          "promise_to_pay": 7,
+          "dispute": 0,
+          "resend_invoice": 0,
+          "out_of_office": 0,
+          "needs_human": 0
+        },
+        "dispute": {
+          "paid": 0,
+          "promise_to_pay": 0,
+          "dispute": 6,
+          "resend_invoice": 0,
+          "out_of_office": 0,
+          "needs_human": 0
+        },
+        "resend_invoice": {
+          "paid": 0,
+          "promise_to_pay": 0,
+          "dispute": 0,
+          "resend_invoice": 2,
+          "out_of_office": 0,
+          "needs_human": 0
+        },
+        "out_of_office": {
+          "paid": 0,
+          "promise_to_pay": 0,
+          "dispute": 0,
+          "resend_invoice": 0,
+          "out_of_office": 6,
+          "needs_human": 0
+        },
+        "needs_human": {
+          "paid": 0,
+          "promise_to_pay": 1,
+          "dispute": 0,
+          "resend_invoice": 1,
+          "out_of_office": 0,
+          "needs_human": 13
+        }
+      },
+      "accuracy": 0.925,
+      "falsePaid": {
+        "count": 0,
+        "ids": []
+      },
+      "missedPaid": {
+        "count": 1,
+        "ids": [
+          "26"
+        ]
+      }
+    },
+    "reviewRate": 0.375,
+    "reviewed": 15,
+    "wrong": 3,
+    "wrongNotReviewed": {
+      "count": 2,
+      "ids": [
+        "22",
+        "35"
+      ]
+    },
+    "rulesChanged": {
+      "count": 0,
+      "fixed": [],
+      "broke": []
+    },
+    "mismatches": [
+      {
+        "id": "22",
+        "body": "Could we split this into three payments of $1,000 starting December 1?",
+        "label": "needs_human",
+        "model": "promise_to_pay",
+        "final": "promise_to_pay",
+        "needsReview": false,
+        "reasoning": "The customer proposes a payment schedule starting on a specific date but does not provide a payment amount or reference, fitting promise_to_pay 2 (commitment without a full date). No dispute or manipulation is present.",
+        "overrideReasons": [],
+        "reviewReasons": []
+      },
+      {
+        "id": "26",
+        "body": "Called your office this morning and paid by card. Reference 5521.",
+        "label": "paid",
+        "model": "needs_human",
+        "final": "needs_human",
+        "needsReview": true,
+        "reasoning": "The customer states they have paid by card and provides a reference number, which satisfies payment evidence with an identifier and no conflicting amount, matching paid 1 criteria.",
+        "overrideReasons": [
+          "invalid_rank"
+        ],
+        "reviewReasons": [
+          "needs_human",
+          "rule_override"
+        ]
+      },
+      {
+        "id": "35",
+        "body": "Can you send it again? Also, please send future invoices to ap@northwindfacilities.example instead of me.",
+        "label": "needs_human",
+        "model": "resend_invoice",
+        "final": "resend_invoice",
+        "needsReview": false,
+        "reasoning": "The reply asks for the same invoice to be sent again without requesting any changes to the invoice total, matching resend_invoice 1. No payment evidence or other intents are present.",
+        "overrideReasons": [],
+        "reviewReasons": []
+      }
+    ],
+    "caughtByRules": []
+  }
+}

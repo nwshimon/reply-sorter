@@ -40,7 +40,7 @@ function load(file: string, source: ReplySource): NewReply[] {
 
 const rows = [
   ...load("data/replies.json", "dataset"),
-  ...load("data/edge-replies.json", "heldout"),
+  ...load("data/heldout-replies.json", "heldout"),
 ];
 
 const db = getDb();

@@ -23,7 +23,7 @@ export const confidenceEnum = pgEnum("confidence", CONFIDENCES);
 export const replySourceEnum = pgEnum("reply_source", REPLY_SOURCES);
 
 export const replies = pgTable("replies", {
-  // "01"–"40" from replies.json, "H01"–"H12" from edge-replies.json, generated for pasted replies.
+  // "01"–"40" from replies.json, "H01"–"H12" from heldout-replies.json, generated for pasted replies.
   id: text("id").primaryKey(),
   sender: text("sender").notNull(),
   customer: text("customer").notNull(),

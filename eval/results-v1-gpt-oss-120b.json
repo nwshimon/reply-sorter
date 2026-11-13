@@ -2,7 +2,7 @@
   "set": "dataset",
   "model": "openai/gpt-oss-120b",
   "promptVersion": "v1",
-  "generatedAt": "2026-11-13T17:10:25.721Z",
+  "generatedAt": "2026-11-13T21:21:32.749Z",
   "tokens": {
     "prompt": 85349,
     "completion": 11762,
@@ -29,17 +29,17 @@
           "category": "promise_to_pay",
           "support": 7,
           "predicted": 8,
-          "truePositives": 7,
-          "precision": 0.875,
-          "recall": 1
+          "truePositives": 6,
+          "precision": 0.75,
+          "recall": 0.8571428571428571
         },
         {
           "category": "dispute",
-          "support": 6,
+          "support": 7,
           "predicted": 6,
           "truePositives": 6,
           "precision": 1,
-          "recall": 1
+          "recall": 0.8571428571428571
         },
         {
           "category": "resend_invoice",
@@ -59,11 +59,11 @@
         },
         {
           "category": "needs_human",
-          "support": 15,
+          "support": 14,
           "predicted": 14,
-          "truePositives": 13,
-          "precision": 0.9285714285714286,
-          "recall": 0.8666666666666667
+          "truePositives": 11,
+          "precision": 0.7857142857142857,
+          "recall": 0.7857142857142857
         }
       ],
       "confusion": {
@@ -77,11 +77,11 @@
         },
         "promise_to_pay": {
           "paid": 0,
-          "promise_to_pay": 7,
+          "promise_to_pay": 6,
           "dispute": 0,
           "resend_invoice": 0,
           "out_of_office": 0,
-          "needs_human": 0
+          "needs_human": 1
         },
         "dispute": {
           "paid": 0,
@@ -89,7 +89,7 @@
           "dispute": 6,
           "resend_invoice": 0,
           "out_of_office": 0,
-          "needs_human": 0
+          "needs_human": 1
         },
         "resend_invoice": {
           "paid": 0,
@@ -109,14 +109,14 @@
         },
         "needs_human": {
           "paid": 0,
-          "promise_to_pay": 1,
+          "promise_to_pay": 2,
           "dispute": 0,
           "resend_invoice": 1,
           "out_of_office": 0,
-          "needs_human": 13
+          "needs_human": 11
         }
       },
-      "accuracy": 0.925,
+      "accuracy": 0.85,
       "falsePaid": {
         "count": 0,
         "ids": []
@@ -141,18 +141,18 @@
         {
           "category": "promise_to_pay",
           "support": 7,
-          "predicted": 8,
-          "truePositives": 7,
-          "precision": 0.875,
-          "recall": 1
+          "predicted": 7,
+          "truePositives": 6,
+          "precision": 0.8571428571428571,
+          "recall": 0.8571428571428571
         },
         {
           "category": "dispute",
-          "support": 6,
+          "support": 7,
           "predicted": 6,
           "truePositives": 6,
           "precision": 1,
-          "recall": 1
+          "recall": 0.8571428571428571
         },
         {
           "category": "resend_invoice",
@@ -172,11 +172,11 @@
         },
         {
           "category": "needs_human",
-          "support": 15,
-          "predicted": 14,
-          "truePositives": 13,
-          "precision": 0.9285714285714286,
-          "recall": 0.8666666666666667
+          "support": 14,
+          "predicted": 15,
+          "truePositives": 12,
+          "precision": 0.8,
+          "recall": 0.8571428571428571
         }
       ],
       "confusion": {
@@ -190,11 +190,11 @@
         },
         "promise_to_pay": {
           "paid": 0,
-          "promise_to_pay": 7,
+          "promise_to_pay": 6,
           "dispute": 0,
           "resend_invoice": 0,
           "out_of_office": 0,
-          "needs_human": 0
+          "needs_human": 1
         },
         "dispute": {
           "paid": 0,
@@ -202,7 +202,7 @@
           "dispute": 6,
           "resend_invoice": 0,
           "out_of_office": 0,
-          "needs_human": 0
+          "needs_human": 1
         },
         "resend_invoice": {
           "paid": 0,
@@ -226,10 +226,10 @@
           "dispute": 0,
           "resend_invoice": 1,
           "out_of_office": 0,
-          "needs_human": 13
+          "needs_human": 12
         }
       },
-      "accuracy": 0.925,
+      "accuracy": 0.875,
       "falsePaid": {
         "count": 0,
         "ids": []
@@ -241,9 +241,9 @@
         ]
       }
     },
-    "reviewRate": 0.375,
-    "reviewed": 15,
-    "wrong": 3,
+    "reviewRate": 0.6,
+    "reviewed": 24,
+    "wrong": 5,
     "wrongNotReviewed": {
       "count": 2,
       "ids": [
@@ -252,11 +252,26 @@
       ]
     },
     "rulesChanged": {
-      "count": 0,
-      "fixed": [],
+      "count": 1,
+      "fixed": [
+        "38"
+      ],
       "broke": []
     },
     "mismatches": [
+      {
+        "id": "20",
+        "body": "Thanks, received.",
+        "label": "promise_to_pay",
+        "model": "needs_human",
+        "final": "needs_human",
+        "needsReview": true,
+        "reasoning": "The reply only says \"Thanks, received.\" which does not confirm payment, promise a date, request a resend, or indicate an out-of-office message. The meaning is unclear, so it falls under needs_human.",
+        "overrideReasons": [],
+        "reviewReasons": [
+          "needs_human"
+        ]
+      },
       {
         "id": "22",
         "body": "Could we split this into three payments of $1,000 starting December 1?",
@@ -280,8 +295,21 @@
           "invalid_rank"
         ],
         "reviewReasons": [
-          "needs_human",
-          "rule_override"
+          "rule_override",
+          "needs_human"
+        ]
+      },
+      {
+        "id": "29",
+        "body": "Please be advised that Seaside Hotels Group filed for Chapter 11 protection on November 3. Direct all claims to our counsel.",
+        "label": "dispute",
+        "model": "needs_human",
+        "final": "needs_human",
+        "needsReview": true,
+        "reasoning": "The reply states a legal filing (Chapter 11) and directs claims to counsel, which matches the 'needs_human' category for legal issues. No payment evidence, dates, or invoice references are provided.",
+        "overrideReasons": [],
+        "reviewReasons": [
+          "needs_human"
         ]
       },
       {
@@ -296,6 +324,8 @@
         "reviewReasons": []
       }
     ],
-    "caughtByRules": []
+    "caughtByRules": [
+      "38"
+    ]
   }
 }

@@ -3,280 +3,280 @@
     "id": "01",
     "category": "paid",
     "rank": 1,
-    "v0_category": "paid",
-    "note": "Reference given, no amount stated: counts as no conflicting amount."
+    "display_category": "paid",
+    "note": "Reference given, no amount stated: no conflicting amount."
   },
   {
     "id": "02",
     "category": "promise_to_pay",
     "rank": 1,
-    "v0_category": "promise_to_pay",
+    "display_category": "promise_to_pay",
     "note": null
   },
   {
     "id": "03",
     "category": "resend_invoice",
     "rank": 1,
-    "v0_category": "resend_invoice",
+    "display_category": "resend_invoice",
     "note": null
   },
   {
     "id": "04",
     "category": "resend_invoice",
     "rank": 3,
-    "v0_category": "dispute",
-    "note": "Correction changes the total (6 visits billed, 4 done)."
+    "display_category": "dispute",
+    "note": "Invoice correction (6 visits billed, 4 done); settled offline."
   },
   {
     "id": "05",
     "category": "out_of_office",
     "rank": 0,
-    "v0_category": "out_of_office",
+    "display_category": "out_of_office",
     "note": null
   },
   {
     "id": "06",
     "category": "paid",
     "rank": 1,
-    "v0_category": "paid",
+    "display_category": "paid",
     "note": null
   },
   {
     "id": "07",
     "category": "paid",
     "rank": 2,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": "Check mailed, not received; no reference."
   },
   {
     "id": "08",
     "category": "promise_to_pay",
     "rank": 2,
-    "v0_category": "promise_to_pay",
+    "display_category": "promise_to_pay",
     "note": null
   },
   {
     "id": "09",
     "category": "needs_human",
     "rank": 0,
-    "v0_category": "needs_human",
-    "note": "Doesn't recognize the vendor; may be the wrong contact, not a dispute."
+    "display_category": "needs_human",
+    "note": "Doesn't recognize the vendor."
   },
   {
     "id": "10",
     "category": "resend_invoice",
     "rank": 3,
-    "v0_category": "dispute",
-    "note": "Correction changes the total ($95/hr to $85/hr)."
+    "display_category": "dispute",
+    "note": "Invoice correction ($95/hr vs $85/hr contract); settled offline."
   },
   {
     "id": "11",
     "category": "resend_invoice",
     "rank": 2,
-    "v0_category": "needs_human",
-    "note": "PO added, total unchanged."
+    "display_category": "needs_human",
+    "note": "PO number added."
   },
   {
     "id": "12",
     "category": "promise_to_pay",
-    "rank": 1,
-    "v0_category": "promise_to_pay",
-    "note": "Partial payment acknowledged; 'the 15th' is a specific date."
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "note": "Promise plus claimed partial payment; Nov 15 is 8 days out, so automatic."
   },
   {
     "id": "13",
     "category": "paid",
     "rank": 3,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": "Payment claimed for a different invoice (INV-2307 vs INV-2310)."
   },
   {
     "id": "14",
     "category": "out_of_office",
     "rank": 0,
-    "v0_category": "out_of_office",
-    "note": "Automated reply (retired mailbox) with an alternate contact."
+    "display_category": "out_of_office",
+    "note": "Automated retired-mailbox redirect; system follows up at the new address."
   },
   {
     "id": "15",
     "category": "promise_to_pay",
-    "rank": 1,
-    "v0_category": "promise_to_pay",
-    "note": "'End of next week' is a specific date."
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "note": "Relative date ('end of next week')."
   },
   {
     "id": "16",
     "category": "dispute",
     "rank": 0,
-    "v0_category": "dispute",
+    "display_category": "dispute",
     "note": null
   },
   {
     "id": "17",
     "category": "paid",
     "rank": 1,
-    "v0_category": "paid",
+    "display_category": "paid",
     "note": "Forwarded remittance lists this invoice and the matching amount."
   },
   {
     "id": "18",
     "category": "promise_to_pay",
     "rank": 3,
-    "v0_category": "dispute",
-    "note": "Pays the rest, disputes one line."
+    "display_category": "dispute",
+    "note": "Pays the rest, contests one line."
   },
   {
     "id": "19",
     "category": "resend_invoice",
     "rank": 2,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": null
   },
   {
     "id": "20",
-    "category": "needs_human",
-    "rank": 0,
-    "v0_category": "needs_human",
-    "note": "No promise; meaning unclear."
+    "category": "promise_to_pay",
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "note": "Acknowledged, no firm promise: schedule a follow-up."
   },
   {
     "id": "21",
     "category": "paid",
     "rank": 2,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": "Ignore the quoted reminder (contains the word 'dispute')."
   },
   {
     "id": "22",
     "category": "needs_human",
     "rank": 0,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": "Asks for new payment terms."
   },
   {
     "id": "23",
     "category": "needs_human",
     "rank": 0,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": "Manipulation language (tier A)."
   },
   {
     "id": "24",
     "category": "out_of_office",
     "rank": 0,
-    "v0_category": "out_of_office",
+    "display_category": "out_of_office",
     "note": null
   },
   {
     "id": "25",
     "category": "dispute",
     "rank": 0,
-    "v0_category": "dispute",
+    "display_category": "dispute",
     "note": null
   },
   {
     "id": "26",
     "category": "paid",
     "rank": 1,
-    "v0_category": "paid",
+    "display_category": "paid",
     "note": "Reference given, no amount stated."
   },
   {
     "id": "27",
     "category": "out_of_office",
     "rank": 0,
-    "v0_category": "out_of_office",
+    "display_category": "out_of_office",
     "note": null
   },
   {
     "id": "28",
     "category": "promise_to_pay",
     "rank": 1,
-    "v0_category": "promise_to_pay",
+    "display_category": "promise_to_pay",
     "note": null
   },
   {
     "id": "29",
-    "category": "needs_human",
-    "rank": 0,
-    "v0_category": "needs_human",
-    "note": "Bankruptcy; legal."
+    "category": "resend_invoice",
+    "rank": 3,
+    "display_category": "dispute",
+    "note": "Bankruptcy; claims redirected to counsel; settled offline."
   },
   {
     "id": "30",
     "category": "resend_invoice",
     "rank": 1,
-    "v0_category": "resend_invoice",
+    "display_category": "resend_invoice",
     "note": "Format change only."
   },
   {
     "id": "31",
     "category": "paid",
     "rank": 2,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": "Spanish; no reference."
   },
   {
     "id": "32",
     "category": "promise_to_pay",
     "rank": 3,
-    "v0_category": "dispute",
-    "note": "Pays part, disputes the cancelled visit."
+    "display_category": "dispute",
+    "note": "Pays part, contests the cancelled visit."
   },
   {
     "id": "33",
     "category": "promise_to_pay",
-    "rank": 1,
-    "v0_category": "promise_to_pay",
-    "note": "'Tomorrow' is a specific date (sent 05:15 UTC; probably Nov 10 local)."
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "note": "Relative date ('tomorrow')."
   },
   {
     "id": "34",
     "category": "out_of_office",
     "rank": 0,
-    "v0_category": "out_of_office",
-    "note": null
+    "display_category": "out_of_office",
+    "note": "French."
   },
   {
     "id": "35",
     "category": "resend_invoice",
     "rank": 2,
-    "v0_category": "needs_human",
-    "note": "Contact change requested; total unchanged."
+    "display_category": "needs_human",
+    "note": "Person asks to change the recipient."
   },
   {
     "id": "36",
     "category": "paid",
-    "rank": 3,
-    "v0_category": "needs_human",
-    "note": "$3,150 against $3,500, not called partial."
+    "rank": 2,
+    "display_category": "needs_human",
+    "note": "$3,150 against $3,500; labelled vague. Code's paid recheck may assign rank 3; both show as needs_human."
   },
   {
     "id": "37",
     "category": "needs_human",
     "rank": 0,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": null
   },
   {
     "id": "38",
     "category": "promise_to_pay",
-    "rank": 1,
-    "v0_category": "promise_to_pay",
-    "note": "Partial paid; 'January 1' is a specific date."
+    "rank": 2,
+    "display_category": "needs_human",
+    "note": "Rank 2 (claims half paid), but Jan 1 is 48 days out: rule 6 sends it to needs_human."
   },
   {
     "id": "39",
     "category": "needs_human",
     "rank": 0,
-    "v0_category": "needs_human",
+    "display_category": "needs_human",
     "note": null
   },
   {
     "id": "40",
     "category": "out_of_office",
     "rank": 0,
-    "v0_category": "out_of_office",
-    "note": "Automated AP ticket confirmation; no promise."
+    "display_category": "out_of_office",
+    "note": "Automated AP ticket confirmation: nobody has read the reminder yet, so the system follows up later."
   }
 ]

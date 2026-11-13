@@ -14,6 +14,17 @@ import { ModelOutput } from "../src/lib/classifier/schema";
 
 const dryRun = process.argv.includes("--dry-run");
 const run = getActiveRun();
+
+// Results stored under prompt "v1" were made with the v0 rank definitions: they ARE the v0 baseline (the
+// committed eval/results-v1-*.json). The v1 rules would rewrite what they showed, so refuse unless asked.
+const BASELINE_PROMPT_VERSIONS = ["v1"];
+if (BASELINE_PROMPT_VERSIONS.includes(run.promptVersion) && !process.argv.includes("--rewrite-baseline")) {
+  console.error(
+    `Refusing: PROMPT_VERSION=${run.promptVersion} holds the v0 baseline results, and the current rules are v1's.\n` +
+      "Set PROMPT_VERSION to the current version, or pass --rewrite-baseline if you really mean to overwrite the baseline.",
+  );
+  process.exit(1);
+}
 const db = getDb();
 
 const rows = await db
@@ -49,6 +60,8 @@ for (const { c, reply } of rows) {
   const p = policyFromRaw(raw.data, replyToInput(reply));
 
   const next = {
+    finalParent: p.finalParent,
+    finalRank: p.finalRank,
     finalCategory: p.finalCategory,
     overrideReasons: p.overrideReasons,
     needsReview: p.needsReview,
@@ -56,7 +69,9 @@ for (const { c, reply } of rows) {
     details: p.details,
   };
   const diffs: string[] = [];
-  if (c.finalCategory !== next.finalCategory) diffs.push(`final ${c.finalCategory} → ${next.finalCategory}`);
+  if (c.finalParent !== next.finalParent || c.finalRank !== next.finalRank)
+    diffs.push(`parent+rank ${c.finalParent ?? "-"} ${c.finalRank ?? "-"} → ${next.finalParent} ${next.finalRank}`);
+  if (c.finalCategory !== next.finalCategory) diffs.push(`displayed ${c.finalCategory} → ${next.finalCategory}`);
   if (!same(c.overrideReasons, next.overrideReasons)) diffs.push(`overrides [${c.overrideReasons}] → [${next.overrideReasons}]`);
   if (c.needsReview !== next.needsReview) diffs.push(`needs_review ${c.needsReview} → ${next.needsReview}`);
   if (!same(c.reviewReasons, next.reviewReasons)) diffs.push(`review reasons [${c.reviewReasons}] → [${next.reviewReasons}]`);

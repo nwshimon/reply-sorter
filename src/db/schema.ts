@@ -18,6 +18,10 @@ import { CATEGORIES, CONFIDENCES } from "../lib/categories";
 export const REPLY_SOURCES = ["dataset", "heldout", "pasted"] as const;
 export type ReplySource = (typeof REPLY_SOURCES)[number];
 
+// Every review action is one row in `corrections` (POLICY.md section 5, CLAUDE.md "Database").
+export const CORRECTION_ACTIONS = ["recategorize", "confirm_paid", "reject_paid", "resolve_offline", "keep"] as const;
+export type CorrectionAction = (typeof CORRECTION_ACTIONS)[number];
+
 export const categoryEnum = pgEnum("category", CATEGORIES);
 export const confidenceEnum = pgEnum("confidence", CONFIDENCES);
 export const replySourceEnum = pgEnum("reply_source", REPLY_SOURCES);
@@ -53,6 +57,11 @@ export const classifications = pgTable(
     // What the model proposed (null when the call failed) vs. what code decided.
     modelCategory: categoryEnum("model_category"),
     modelRank: smallint("model_rank"),
+    // v1: the parent + rank after the code rules (internal, never shown). final_category stays the DISPLAYED
+    // category, which the promise-horizon rule can set to needs_human without changing parent or rank.
+    // Nullable: results from before v1 (prompt v1) never had them.
+    finalParent: categoryEnum("final_parent"),
+    finalRank: smallint("final_rank"),
     finalCategory: categoryEnum("final_category").notNull(),
     overrideReasons: text("override_reasons").array().notNull().default([]),
 
@@ -88,6 +97,8 @@ export const corrections = pgTable(
     replyId: text("reply_id")
       .notNull()
       .references(() => replies.id, { onDelete: "cascade" }),
+    // v1: which review action this row records. Existing rows are category changes.
+    action: text("action", { enum: CORRECTION_ACTIONS }).notNull().default("recategorize"),
     fromCategory: categoryEnum("from_category"),
     toCategory: categoryEnum("to_category").notNull(),
     note: text("note"),

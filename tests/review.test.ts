@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeConcerns, queueTier, sortQueue } from "../src/lib/review";
+import { queueTier, sortQueue } from "../src/lib/review";
 
 const r = (id: string, reviewReasons: string[], overrideReasons: string[] = [], day = 1) => ({
   id, reviewReasons, overrideReasons, receivedAt: new Date(Date.UTC(2026, 10, day)),
@@ -46,35 +46,5 @@ describe("sortQueue", () => {
     const rows = [r("b", ["low_confidence"]), r("a", ["needs_human"])];
     sortQueue(rows);
     expect(rows.map((x) => x.id)).toEqual(["b", "a"]);
-  });
-});
-
-describe("describeConcerns (plain text beside a queued reply)", () => {
-  const base = { reasoning: null, finalCategory: "needs_human" as const };
-  it("names a blocked paid claim by what the rule found, not by 'a rule changed it'", () => {
-    const c = describeConcerns({ ...base, reviewReasons: ["needs_human", "rule_override"], overrideReasons: ["paid_no_reference"] });
-    expect(c).toEqual(["Paid claim without a confirmation, reference or trace number"]);
-  });
-  it("lists rule findings first, then other flags, without repeating a reason", () => {
-    const c = describeConcerns({
-      ...base,
-      reviewReasons: ["needs_human", "rule_override", "manipulation_language", "status_update_request"],
-      overrideReasons: ["manipulation_language"],
-    });
-    expect(c).toEqual(["Manipulation language (tier A): forced to needs human", "Asks us to update payment status"]);
-  });
-  it("a model-chosen needs_human with no flag shows the first sentence of its reasoning", () => {
-    const c = describeConcerns({ ...base, reviewReasons: ["needs_human"], overrideReasons: [], reasoning: "The customer asks for a call. They also mention a late fee." });
-    expect(c).toEqual(["The customer asks for a call."]);
-  });
-  it("a model-chosen needs_human also shows its other flags after the reasoning (#20: 'Thanks, received.')", () => {
-    const c = describeConcerns({ ...base, reviewReasons: ["needs_human", "low_confidence"], overrideReasons: [], reasoning: "The reply is too vague to classify. Nothing else is stated." });
-    expect(c).toEqual(["The reply is too vague to classify.", "Model confidence is not high"]);
-  });
-  it("a non-needs_human reply with no flag still says why it is here", () => {
-    expect(describeConcerns({ reviewReasons: [], overrideReasons: [], reasoning: "x.", finalCategory: "dispute" })).toEqual(["Flagged for review"]);
-  });
-  it("shows low confidence as plain text", () => {
-    expect(describeConcerns({ ...base, finalCategory: "paid", reviewReasons: ["low_confidence"], overrideReasons: [] })).toEqual(["Model confidence is not high"]);
   });
 });

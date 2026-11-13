@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { getDb } from "./client";
 import type { ClassifyInput, ClassifyResult } from "../lib/classifier/classify";
-import type { Category } from "../lib/categories";
-import { classifications, corrections, replies, type NewClassification, type Reply } from "./schema";
+import { isAutomatic, type Category } from "../lib/categories";
+import { classifications, corrections, replies, type CorrectionAction, type NewClassification, type Reply } from "./schema";
 
 /** Which classifier run is "active": results from other models or prompt versions are ignored. */
 export type ActiveRun = { model: string; promptVersion: string };
@@ -38,6 +38,7 @@ function latestCorrections() {
   return getDb()
     .selectDistinctOn([corrections.replyId], {
       replyId: corrections.replyId,
+      action: corrections.action,
       toCategory: corrections.toCategory,
       note: corrections.note,
       createdAt: corrections.createdAt,
@@ -47,11 +48,65 @@ function latestCorrections() {
     .as("latest_correction");
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Status: where a reply stands. THE one function (POLICY.md section 5, CLAUDE.md "Database"); the list, the review
+// queue, the detail page and the nav badge all use it.
+//
+//   Automatic  promise_to_pay, resend_invoice, out_of_office: nobody has to act.
+//   In review  paid, dispute or needs_human, with no action yet that takes it out of the queue.
+//   Resolved   confirmed, resolved offline, kept, or moved to paid by a person (which counts as confirmed).
+//
+// The shown category is the latest correction's to_category if there is one, else the system's final category.
+// ---------------------------------------------------------------------------------------------------------------
+export type ReplyStatus = "automatic" | "in_review" | "resolved";
+export const STATUS_LABELS: Record<ReplyStatus, string> = { automatic: "Automatic", in_review: "In review", resolved: "Resolved" };
+
+export type LatestAction = { action: CorrectionAction; toCategory: Category } | null;
+
+/** Null when the reply has no result yet (nothing to say about it). */
+export function replyStatus(shown: Category | null, latest: LatestAction): ReplyStatus | null {
+  if (!shown) return null;
+  if (latest) {
+    switch (latest.action) {
+      case "confirm_paid":
+      case "resolve_offline":
+      case "keep":
+        return "resolved";
+      case "reject_paid":
+        return "in_review"; // back in Needs human, still open
+      case "recategorize":
+        if (latest.toCategory === "paid") return "resolved"; // a person saying "paid" counts as confirmed
+        return isAutomatic(latest.toCategory) ? "automatic" : "in_review";
+    }
+  }
+  return isAutomatic(shown) ? "automatic" : "in_review";
+}
+
+/** The three sections of the review queue. */
+export type QueueSection = "needs_human" | "confirm_payment" | "dispute";
+export function queueSection(shown: Category): QueueSection | null {
+  if (shown === "needs_human") return "needs_human";
+  if (shown === "paid") return "confirm_payment";
+  if (shown === "dispute") return "dispute";
+  return null;
+}
+
+/** "What happens next" for a reply, in plain words. */
+export function nextStepText(shown: Category | null, status: ReplyStatus | null): string {
+  if (!shown || !status) return "Not classified yet.";
+  if (status === "automatic") return "Handled automatically. No one needs to act.";
+  if (status === "resolved") return "Resolved. A person has dealt with it.";
+  const section = queueSection(shown);
+  if (section === "confirm_payment") return "Goes to the review queue: confirm payment.";
+  if (section === "dispute") return "Goes to the review queue: settle offline.";
+  return "Goes to the review queue: set the right category.";
+}
+
 /** Every reply with its current result and latest correction. The shown category is the correction if any. */
 export async function listReplies(run: ActiveRun = getActiveRun()) {
   const current = currentResults(run);
   const correction = latestCorrections();
-  return getDb()
+  const rows = await getDb()
     .select({
       reply: replies,
       modelCategory: current.modelCategory,
@@ -60,15 +115,50 @@ export async function listReplies(run: ActiveRun = getActiveRun()) {
       needsReview: current.needsReview,
       reviewReasons: current.reviewReasons,
       reasoning: current.reasoning,
+      confidence: current.confidence,
       details: current.details,
       correctedTo: correction.toCategory,
+      correctionAction: correction.action,
       correctionNote: correction.note,
       shownCategory: sql<Category | null>`coalesce(${correction.toCategory}, ${current.finalCategory})`,
     })
     .from(replies)
     .leftJoin(current, eq(current.replyId, replies.id))
     .leftJoin(correction, eq(correction.replyId, replies.id))
-    .orderBy(asc(replies.source), asc(replies.id));
+    // The held-out set is kept out of the interface (lists, queue, counts).
+    .where(ne(replies.source, "heldout"))
+    .orderBy(desc(replies.receivedAt), desc(replies.id));
+
+  // A reply whose only attempts FAILED has no "current result" (that rule ignores errored rows, so the evaluation can't
+  // be fooled by one). POLICY.md still says a failure goes to Needs human, so the UI shows it there, with the reason.
+  const failedIds = rows.filter((r) => r.finalCategory === null).map((r) => r.reply.id);
+  const failures = new Map<string, { error: string | null; reviewReasons: string[]; overrideReasons: string[] }>();
+  if (failedIds.length > 0) {
+    const failed = await getDb()
+      .selectDistinctOn([classifications.replyId], {
+        replyId: classifications.replyId,
+        error: classifications.error,
+        reviewReasons: classifications.reviewReasons,
+        overrideReasons: classifications.overrideReasons,
+      })
+      .from(classifications)
+      .where(and(sql`${classifications.error} is not null`, eq(classifications.model, run.model), eq(classifications.promptVersion, run.promptVersion)))
+      .orderBy(classifications.replyId, desc(classifications.id));
+    for (const f of failed) if (failedIds.includes(f.replyId)) failures.set(f.replyId, f);
+  }
+
+  return rows.map((r) => {
+    const fail = failures.get(r.reply.id);
+    const shown: Category | null = r.shownCategory ?? (fail ? "needs_human" : null);
+    return {
+      ...r,
+      shownCategory: shown,
+      classifierFailed: !!fail,
+      overrideReasons: r.overrideReasons ?? fail?.overrideReasons ?? null,
+      reviewReasons: r.reviewReasons ?? fail?.reviewReasons ?? null,
+      status: replyStatus(shown, r.correctedTo && r.correctionAction ? { action: r.correctionAction, toCategory: r.correctedTo } : null),
+    };
+  });
 }
 
 export type ReplyListRow = Awaited<ReturnType<typeof listReplies>>[number];
@@ -96,6 +186,8 @@ export function toClassificationRow(replyId: string, r: ClassifyResult): NewClas
     promptVersion: r.promptVersion,
     modelCategory: r.policy.modelCategory,
     modelRank: r.policy.modelRank,
+    finalParent: r.policy.finalParent,
+    finalRank: r.policy.finalRank,
     finalCategory: r.policy.finalCategory,
     overrideReasons: r.policy.overrideReasons,
     confidence: r.rawOutput?.confidence ?? null,
@@ -152,11 +244,35 @@ export async function getReplyDetail(id: string, run: ActiveRun = getActiveRun()
     .limit(1);
   const history = await db.select().from(corrections).where(eq(corrections.replyId, id)).orderBy(desc(corrections.id));
 
-  const shownCategory: Category | null = history[0]?.toCategory ?? currentRow?.finalCategory ?? null;
-  return { reply, current: currentRow ?? null, lastAttempt: lastAttempt ?? null, corrections: history, shownCategory };
+  // Every classification run for this reply (any model or prompt version), for the history timeline.
+  const runs = await db
+    .select({
+      id: classifications.id,
+      model: classifications.model,
+      promptVersion: classifications.promptVersion,
+      finalCategory: classifications.finalCategory,
+      error: classifications.error,
+      createdAt: classifications.createdAt,
+    })
+    .from(classifications)
+    .where(eq(classifications.replyId, id))
+    .orderBy(desc(classifications.id));
+
+  const latest = history[0] ?? null;
+  // A reply whose only attempts failed goes to Needs human (POLICY.md); see listReplies.
+  const failedOnly = !currentRow && !!lastAttempt?.error;
+  const shownCategory: Category | null = latest?.toCategory ?? currentRow?.finalCategory ?? (failedOnly ? "needs_human" : null);
+  const status = replyStatus(shownCategory, latest ? { action: latest.action, toCategory: latest.toCategory } : null);
+  return { reply, current: currentRow ?? null, lastAttempt: lastAttempt ?? null, failedOnly, corrections: history, latestCorrection: latest, runs, shownCategory, status };
 }
 
-export async function saveCorrection(input: { replyId: string; fromCategory: Category | null; toCategory: Category; note: string | null }) {
+export async function saveCorrection(input: {
+  replyId: string;
+  action?: CorrectionAction;
+  fromCategory: Category | null;
+  toCategory: Category;
+  note: string | null;
+}) {
   await getDb().insert(corrections).values(input);
 }
 
@@ -166,13 +282,7 @@ export async function insertPastedReply(r: typeof replies.$inferInsert): Promise
   return rows.length > 0;
 }
 
-/** How many real (non-pasted) replies are in the review queue: the dot beside Review in the sidebar. */
-export async function countNeedsReview(run: ActiveRun = getActiveRun()): Promise<number> {
-  const current = currentResults(run);
-  const [row] = await getDb()
-    .select({ n: sql<number>`count(*)::int` })
-    .from(current)
-    .innerJoin(replies, eq(replies.id, current.replyId))
-    .where(and(eq(current.needsReview, true), ne(replies.source, "pasted")));
-  return row.n;
+/** How many replies are In review: the number beside Review in the nav. */
+export async function countInReview(run: ActiveRun = getActiveRun()): Promise<number> {
+  return (await listReplies(run)).filter((r) => r.status === "in_review").length;
 }

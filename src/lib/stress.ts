@@ -1,6 +1,7 @@
 // Grading for the stress-test set (data/stress-*.json). Pure functions: no network, no database, no env.
 // The stress set is separate from the 40 given replies: it never touches the database or the app's lists.
 import { displayedCategory, type Category } from "./categories";
+import type { ModelOutput } from "./classifier/schema";
 
 export type StressLabel = {
   id: string;
@@ -36,6 +37,8 @@ export type StressRow = {
   /** The evidence quote the model gave, and whether it is an exact copy of the reply (older result files lack these). */
   quote?: string | null;
   quoteExact?: boolean | null;
+  /** The model's validated JSON, untouched by any rule: lets a run be replayed offline with different code rules. */
+  raw?: ModelOutput | null;
 };
 
 export const acceptableFor = (l: Pick<StressLabel, "display_category" | "acceptable">): Category[] => l.acceptable ?? [l.display_category];

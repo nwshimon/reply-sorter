@@ -740,5 +740,47 @@
       "currency": "USD",
       "due_date": "2026-11-12"
     }
+  },
+  {
+    "id": "S54",
+    "sender": "(automated) <noreply@summitlawpartners.example>",
+    "customer": "Summit Law Partners",
+    "subject": "RE: Invoice INV-3054 reminder",
+    "body": "Thank you for reaching out to Accounts Payable. We have received your inquiry and assigned reference AP-2291. Expect a reply within 3 business days.",
+    "received_at": "2026-11-20T21:10:00Z",
+    "invoice": {
+      "number": "INV-3054",
+      "amount": 3300,
+      "currency": "USD",
+      "due_date": "2026-11-12"
+    }
+  },
+  {
+    "id": "S55",
+    "sender": "(automated) <noreply@summitlawpartners.example>",
+    "customer": "Summit Law Partners",
+    "subject": "RE: Invoice INV-3055 reminder",
+    "body": "Auto-reply: your message was received by the Billing team and case 5530 was opened.",
+    "received_at": "2026-11-20T21:20:00Z",
+    "invoice": {
+      "number": "INV-3055",
+      "amount": 3300,
+      "currency": "USD",
+      "due_date": "2026-11-12"
+    }
+  },
+  {
+    "id": "S56",
+    "sender": "Cleo Vance <cleo@summitlawpartners.example>",
+    "customer": "Summit Law Partners",
+    "subject": "RE: Invoice INV-3056 reminder",
+    "body": "Got your note, appreciate the heads up.",
+    "received_at": "2026-11-20T21:30:00Z",
+    "invoice": {
+      "number": "INV-3056",
+      "amount": 3300,
+      "currency": "USD",
+      "due_date": "2026-11-12"
+    }
   }
 ]

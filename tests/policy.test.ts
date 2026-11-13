@@ -421,3 +421,70 @@ describe("code only moves a reply toward a person, never toward paid", () => {
     expect(r.finalRank).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("rule-4 variants (experimental; the default is the policy as written)", () => {
+  const body32 = "We'll pay for the two completed visits ($640) but not the cancelled one ($320) — we cancelled 48 hours ahead per the contract.";
+  const ctx32 = reply(body32, "INV-2292", 960, "2026-11-13T10:00:00Z");
+  const lowercased = { category: "dispute" as const, rank: 0, evidence_quote: "we'll pay for the two completed visits ($640) but not the cancelled one ($320)", details: { amount_disputed: 320 } };
+
+  it("the default options are exactly today's behaviour", () => {
+    const a = applyPolicy(out(lowercased), ctx32);
+    const b = applyPolicy(out(lowercased), ctx32, { quoteMatch: "exact", amountFailure: "always" });
+    expect(a).toEqual(b);
+  });
+  it("#32: a quote that differs only in letter case demotes under 'exact' (the policy) but not under 'normalized'", () => {
+    expect(applyPolicy(out(lowercased), ctx32).finalCategory).toBe("needs_human");
+    const r = applyPolicy(out(lowercased), ctx32, { quoteMatch: "normalized" });
+    expect(r.finalCategory).toBe("dispute");
+    expect(r.overrideReasons).toEqual([]);
+  });
+  it("'normalized' forgives curly vs straight quotes and spacing, not a paraphrase", () => {
+    const vac = reply("I’m on vacation and will be back on November 20.  I’ll respond then.", "INV-2267", 780, "2026-11-11T10:00:00Z");
+    const curly = { category: "out_of_office" as const, rank: 0, evidence_quote: "I'm on vacation and will be back on November 20." };
+    expect(applyPolicy(out(curly), vac, { quoteMatch: "normalized" }).finalCategory).toBe("out_of_office");
+    // #24's real failure: the model wrote "I'll be back on" where the reply says "will be back on": a paraphrase.
+    const paraphrase = { category: "out_of_office" as const, rank: 0, evidence_quote: "I'll be back on November 20" };
+    expect(applyPolicy(out(paraphrase), vac, { quoteMatch: "normalized" }).finalCategory).toBe("needs_human");
+  });
+  it("an invented quote still demotes under every variant", () => {
+    const fake = { category: "dispute" as const, rank: 0, evidence_quote: "we refuse to pay anything" };
+    for (const quoteMatch of ["exact", "normalized"] as const) expect(applyPolicy(out(fake), ctx32, { quoteMatch }).finalCategory).toBe("needs_human");
+  });
+
+  const half = reply("Paid half today, ref 4412, the rest next month.", "INV-3009", 1600, "2026-11-18T13:00:00Z");
+  const computed = { category: "promise_to_pay" as const, rank: 2, evidence_quote: "Paid half today, ref 4412, the rest next month.", details: { amount_paid: 800 } };
+  it("S09: a computed amount (half of $1,600) demotes a correct answer under 'always' (the policy), not under 'paid-only'", () => {
+    expect(applyPolicy(out(computed), half).finalCategory).toBe("needs_human");
+    const r = applyPolicy(out(computed), half, { amountFailure: "paid-only" });
+    expect(r.finalCategory).toBe("promise_to_pay");
+    expect(r.details?.amount_paid).toBeNull(); // the invented number is still thrown away
+    expect(r.reviewReasons).toContain("amount_not_in_text");
+  });
+  it("'paid-only' still demotes a PAID claim whose amount isn't in the reply", () => {
+    const wired = reply("Wired $3,150 this morning.", "INV-2304", 3500, "2026-11-13T17:20:00Z");
+    const r = applyPolicy(out({ evidence_quote: "Wired $3,150", details: { amount_paid: 3500, payment_reference: "wire" } }), wired, { amountFailure: "paid-only" });
+    expect(r.finalCategory).toBe("needs_human");
+  });
+  it("no variant can create a paid the model did not propose confidently (the safety invariant, per variant)", () => {
+    const body = "Paid $1,840 by ACH, trace 0210004417.";
+    const ctx = reply(body, "INV-2403", 1840, "2026-11-16T17:20:00Z");
+    for (const quoteMatch of ["exact", "normalized"] as const) {
+      for (const amountFailure of ["always", "paid-only"] as const) {
+        for (const category of CATEGORIES) {
+          for (const rank of [0, 1, 2, 3]) {
+            for (const confidence of ["high", "medium", "low"] as const) {
+              for (const manipulation_language of [false, true]) {
+                const r = applyPolicy(
+                  out({ category, rank, confidence, evidence_quote: body.toUpperCase(), details: { amount_paid: 1840, payment_reference: "0210004417" }, flags: { manipulation_language } }),
+                  ctx,
+                  { quoteMatch, amountFailure },
+                );
+                if (r.finalCategory === "paid") expect([category, rank, confidence !== "low", manipulation_language], `${quoteMatch}/${amountFailure}`).toEqual(["paid", 1, true, false]);
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amountInText, cents, quoteInBody, sameAmount, sameInvoiceNumber } from "../src/lib/evidence";
+import { amountInText, cents, normalizeForMatch, quoteInBody, sameAmount, sameInvoiceNumber } from "../src/lib/evidence";
 
 describe("cents", () => {
   it("converts numbers and numeric strings to whole cents", () => {
@@ -57,5 +57,24 @@ describe("sameInvoiceNumber", () => {
   it("rejects a different invoice", () => {
     expect(sameInvoiceNumber("INV-2307", "INV-2310")).toBe(false);
     expect(sameInvoiceNumber("2307", "INV-2310")).toBe(false);
+  });
+});
+
+describe("quoteInBody modes", () => {
+  const body = "We'll pay for the two completed visits ($640). Thanks.";
+  it("exact (the policy) is case-sensitive", () => {
+    expect(quoteInBody("We'll pay for the two completed visits", body)).toBe(true);
+    expect(quoteInBody("we'll pay for the two completed visits", body)).toBe(false);
+  });
+  it("normalized ignores letter case, spacing and curly quotes", () => {
+    expect(quoteInBody("we'll pay for the two completed visits", body, "normalized")).toBe(true);
+    expect(quoteInBody("We’ll   pay for the two completed visits", body, "normalized")).toBe(true);
+  });
+  it("normalized never accepts different words or an empty quote", () => {
+    expect(quoteInBody("we will pay for both visits", body, "normalized")).toBe(false);
+    expect(quoteInBody("   ", body, "normalized")).toBe(false);
+  });
+  it("normalizeForMatch straightens quotes and dashes and collapses spacing", () => {
+    expect(normalizeForMatch("  It’s  A “test” — ok ")).toBe('it\'s a "test" - ok');
   });
 });

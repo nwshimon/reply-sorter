@@ -5,7 +5,7 @@
 import { displayedCategory, isAutomatic, isValidRank, type Category } from "./categories";
 import type { ModelDetails, ModelOutput } from "./classifier/schema";
 import { checkPromisedDate, daysUntil, PROMISE_HORIZON_DAYS } from "./dates";
-import { amountInText, quoteInBody, sameAmount, sameInvoiceNumber } from "./evidence";
+import { amountInText, quoteInBody, sameAmount, sameInvoiceNumber, type QuoteMatch } from "./evidence";
 
 /** Why code changed the model's category or rank, or the displayed category. */
 export const OVERRIDE_REASONS = {
@@ -63,7 +63,20 @@ export type PolicyResult = {
   details: ModelDetails | null;
 };
 
-export function applyPolicy(output: ModelOutput, reply: ReplyContext): PolicyResult {
+/**
+ * Variants of rule 4 (POLICY.md section 4), for testing with a free replay over stored model outputs. THE DEFAULT IS THE
+ * POLICY AS WRITTEN; a variant is only adopted if the policy owner changes POLICY.md.
+ */
+export type PolicyOptions = {
+  /** "exact" (policy) or "normalized": the quote may differ in letter case, spacing or curly quotes, never in words. */
+  quoteMatch?: QuoteMatch;
+  /** "always" (policy): any amount not written in the reply is low confidence. "paid-only": only when the model said paid. */
+  amountFailure?: "always" | "paid-only";
+};
+export const DEFAULT_POLICY_OPTIONS: Required<PolicyOptions> = { quoteMatch: "exact", amountFailure: "always" };
+
+export function applyPolicy(output: ModelOutput, reply: ReplyContext, options: PolicyOptions = {}): PolicyResult {
+  const { quoteMatch, amountFailure } = { ...DEFAULT_POLICY_OPTIONS, ...options };
   const overrides: OverrideReason[] = [];
   const review = new Set<ReviewReason>();
   const d: ModelDetails = { ...output.details };
@@ -130,18 +143,21 @@ export function applyPolicy(output: ModelOutput, reply: ReplyContext): PolicyRes
   // Rule 4: every extracted amount must appear in the body, and the evidence quote must be an exact substring.
   // A failure discards the value and counts as low confidence (rule 5).
   let evidenceFailed = false;
-  if (!quoteInBody(output.evidence_quote, reply.body)) {
+  if (!quoteInBody(output.evidence_quote, reply.body, quoteMatch)) {
     evidenceFailed = true;
     review.add("evidence_not_found");
   }
+  // A number the model computed (half of $1,600; $2,600 minus $2,000) is not written in the reply. It is always discarded;
+  // whether it also counts as low confidence depends on the variant: it backs the decision only when the model said paid.
+  const amountBacksDecision = amountFailure === "always" || output.category === "paid";
   if (d.amount_paid !== null && !amountInText(d.amount_paid, reply.body)) {
     d.amount_paid = null;
-    evidenceFailed = true;
+    if (amountBacksDecision) evidenceFailed = true;
     review.add("amount_not_in_text");
   }
   if (d.amount_disputed !== null && !amountInText(d.amount_disputed, reply.body)) {
     d.amount_disputed = null;
-    evidenceFailed = true;
+    if (amountBacksDecision) evidenceFailed = true;
     review.add("amount_not_in_text");
   }
 

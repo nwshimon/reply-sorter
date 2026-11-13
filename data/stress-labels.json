@@ -605,5 +605,38 @@
     "pair": null,
     "split": "dev",
     "note": "A return date is not a payment date."
+  },
+  {
+    "id": "S54",
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "rule": "§3 out_of_office 0: an automated receipt or ticket confirmation (the #40 policy change)",
+    "group": "away and automated",
+    "pair": "pair-receipt-dev",
+    "split": "dev",
+    "note": "Depends on the #40 policy change that is still being tested."
+  },
+  {
+    "id": "S55",
+    "category": "out_of_office",
+    "rank": 0,
+    "display_category": "out_of_office",
+    "rule": "§3 out_of_office 0: an automated receipt or ticket confirmation (the #40 policy change)",
+    "group": "away and automated",
+    "pair": null,
+    "split": "dev",
+    "note": "Depends on the #40 policy change that is still being tested."
+  },
+  {
+    "id": "S56",
+    "category": "promise_to_pay",
+    "rank": 2,
+    "display_category": "promise_to_pay",
+    "rule": "§3 promise_to_pay 2: a PERSON acknowledging with no firm promise",
+    "group": "away and automated",
+    "pair": "pair-receipt-dev",
+    "split": "dev",
+    "note": "Pair with S54: a person, not a system."
   }
 ]

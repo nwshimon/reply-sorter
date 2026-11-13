@@ -73,6 +73,7 @@ for (const [i, label] of selected.entries()) {
     error: result.error,
     reasoning: result.rawOutput?.reasoning ?? null,
     overrideReasons: result.policy.overrideReasons,
+    raw: result.rawOutput,
     quote: result.rawOutput?.evidence_quote ?? null,
     quoteExact: result.rawOutput ? result.rawOutput.evidence_quote.trim() !== "" && reply.body.includes(result.rawOutput.evidence_quote.trim()) : null,
   };

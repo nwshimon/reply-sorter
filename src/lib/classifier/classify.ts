@@ -1,4 +1,4 @@
-import { applyPolicy, failureResult, type PolicyResult, type ReplyContext } from "../policy";
+import { applyPolicy, failureResult, type PolicyOptions, type PolicyResult, type ReplyContext } from "../policy";
 import { buildUserMessage, CLOSING_TAG, ESCAPED_CLOSING_TAG, promptVersion, SYSTEM_PROMPT } from "./prompt";
 import { llmProvider, ProviderError, type Provider } from "./providers";
 import { ModelOutput } from "./schema";
@@ -36,8 +36,8 @@ export const MAX_BODY_CHARS = 6000;
  * and reapply-policy.ts, so re-running the rules on a stored raw_output gives exactly what a fresh
  * run would. The prompt escaped any closing tag in the body; undo that in the quote so it can match.
  */
-export function policyFromRaw(raw: ModelOutput, input: ReplyContext): PolicyResult {
-  return applyPolicy({ ...raw, evidence_quote: raw.evidence_quote.replaceAll(ESCAPED_CLOSING_TAG, CLOSING_TAG) }, input);
+export function policyFromRaw(raw: ModelOutput, input: ReplyContext, options?: PolicyOptions): PolicyResult {
+  return applyPolicy({ ...raw, evidence_quote: raw.evidence_quote.replaceAll(ESCAPED_CLOSING_TAG, CLOSING_TAG) }, input, options);
 }
 
 export async function classify(input: ClassifyInput, opts: ClassifyOptions = {}): Promise<ClassifyResult> {

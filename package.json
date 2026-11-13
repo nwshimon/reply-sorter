@@ -20,7 +20,9 @@
     "ai-logs": "tsx scripts/export-ai-logs.ts",
     "ai-logs:check": "tsx scripts/export-ai-logs.ts --check",
     "gen:policy": "tsx scripts/gen-policy-text.ts",
-    "stress": "tsx --env-file=.env.local scripts/stress.ts"
+    "stress": "tsx --env-file=.env.local scripts/stress.ts",
+    "compare": "tsx --env-file=.env.local scripts/compare.ts",
+    "replay": "tsx --env-file=.env.local scripts/replay-rules.ts"
   },
   "dependencies": {
     "@google/genai": "^3.3.0",

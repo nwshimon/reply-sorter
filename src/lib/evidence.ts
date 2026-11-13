@@ -19,10 +19,31 @@ export function sameAmount(a: number | string, b: number | string): boolean {
   return Number.isFinite(ca) && ca === cb;
 }
 
-/** Rule 3: the evidence quote must be an exact substring of the body (only the quote's ends are trimmed). */
-export function quoteInBody(quote: string | null | undefined, body: string): boolean {
+/**
+ * Lowercased, curly quotes and dashes straightened, spacing collapsed. Used only by the "normalized" quote match: it
+ * forgives a changed first letter or a typographic quote, but NOT a paraphrase or an invented quote.
+ */
+export function normalizeForMatch(text: string): string {
+  return text
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u201b]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export type QuoteMatch = "exact" | "normalized";
+
+/**
+ * POLICY.md section 4, rule 4: the evidence quote must be an exact substring of the body (only the quote's ends are
+ * trimmed). "normalized" is an experimental, more forgiving match (see normalizeForMatch); "exact" is the policy.
+ */
+export function quoteInBody(quote: string | null | undefined, body: string, mode: QuoteMatch = "exact"): boolean {
   const q = (quote ?? "").trim();
-  return q.length > 0 && body.includes(q);
+  if (q.length === 0) return false;
+  return mode === "exact" ? body.includes(q) : normalizeForMatch(body).includes(normalizeForMatch(q));
 }
 
 // A number as written: "3,150", "3150", "3,150.00", "615.50", "3.150,00", "1 840".

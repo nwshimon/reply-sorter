@@ -16,7 +16,9 @@
     "classify": "tsx --env-file=.env.local scripts/classify-all.ts",
     "classify:heldout": "tsx --env-file=.env.local scripts/classify-all.ts --heldout",
     "reapply": "tsx --env-file=.env.local scripts/reapply-policy.ts",
-    "eval": "tsx --env-file=.env.local scripts/eval.ts"
+    "eval": "tsx --env-file=.env.local scripts/eval.ts",
+    "ai-logs": "tsx scripts/export-ai-logs.ts",
+    "ai-logs:check": "tsx scripts/export-ai-logs.ts --check"
   },
   "dependencies": {
     "@google/genai": "^3.3.0",

@@ -249,6 +249,7 @@ Deploy after every step, so something working is always online.
 
 - **Never commit secrets.** Check `git diff --staged` for keys before every commit. Remove keys from anything copied into `ai-logs/`.
 - **Never read, print or echo `.env.local`** or any variable holding a secret. Session transcripts get committed to `ai-logs/`, so a secret shown in a session ends up in the repo. To check that a variable is set, print only its name and whether it's present.
+- **Session transcripts are exported automatically before every compact** (a `PreCompact` hook runs `scripts/export-ai-logs.ts`, which redacts secrets by pattern). Run `npm run ai-logs` before ending a session and `npm run ai-logs:check` before any commit that touches `ai-logs/`.
 - **At the end of each task, append one row to `ai-logs/README.md`:** date, session, what was built, how it was verified (commands run and results), and anything I corrected or rejected. Never edit or summarize the transcript files themselves.
 - **Ask before:** editing `POLICY.md` or `data/`, adding a dependency not listed above, or changing the database schema after the first migration.
 - **Prove each step works:** run the tests after changing `lib/`, run the evaluation after changing the prompt, and click through the deployed site after a deploy. Report results with the actual numbers or output, not "should work".

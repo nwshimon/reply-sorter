@@ -88,8 +88,8 @@ reply-sorter/
 ├── data/                    # never changed by code
 │   ├── replies.json         # the 40 replies
 │   ├── labels.json          # my labels: id, category (parent), rank, v0_category, note
-│   ├── edge-replies.json    # held-out set: 12 extra replies (ids H01–H12), NEVER used for tuning the prompt
-│   └── edge-labels.json     # labels for the held-out set
+│   ├── heldout-replies.json # 12 extra replies, NEVER used for tuning the prompt
+│   └── heldout-labels.json
 ├── eval/results-<PROMPT_VERSION>.json   # committed result of each evaluation run
 ├── drizzle/                 # generated migrations (commit them)
 ├── scripts/                 # run locally: seed.ts, classify-all.ts, reapply-policy.ts (no model calls), eval.ts
@@ -158,6 +158,13 @@ The model reports facts and suggests a category; `policy.ts` applies the rules. 
 - #23: tier A → `needs_human`
 - H03: tier B with strict evidence → `paid`
 - H04: tier B with no amount → `needs_human`
+- An invoice amount passed as a **string** (`"3500.00"`) against `amount_paid: 3500` → treated as equal (see amounts below)
+
+**Amounts are compared in cents, never as raw values.** Postgres `numeric` can arrive as a string (`"3500.00"`); comparing that directly with the model's `3500` silently fails, so every amount looks like a mismatch. That fails safe (`needs_human`) but drives paid recall to zero and looks like a model problem. `schema.ts` reads `invoice_amount` with `mode: "number"`, but `policy.ts` still converts explicitly so it's correct whatever the source:
+```ts
+const cents = (x: number | string) => Math.round(Number(x) * 100);
+cents(reply.invoiceAmount) === cents(output.details.amount_paid)
+```
 
 ### Prompt rules
 - Put POLICY.md sections 2, 3 and 5 in the prompt word for word. Don't paraphrase them.
@@ -168,12 +175,12 @@ The model reports facts and suggests a category; `policy.ts` applies the rules. 
 ## Database (`src/db/schema.ts`)
 
 - **`replies`**: id, sender, customer, subject, body, received_at, invoice_number, invoice_amount, currency, due_date, `source` (`dataset` | `heldout` | `pasted`), created_at.
-- **`classifications`**: one row per run, nothing overwritten. Columns: id, reply_id, model, prompt_version, `model_category`, `model_rank`, `final_category`, `override_reasons text[]`, confidence, reasoning, evidence_quote, `details jsonb`, `flags jsonb`, `raw_output jsonb`, `needs_review`, `review_reasons text[]`, error, latency_ms, `prompt_tokens`, `completion_tokens`, created_at. Add an index on (reply_id, prompt_version, model). The current result for a reply is its latest successful row for the active `prompt_version` + `model`. `reapply-policy.ts` recomputes `final_category`, `override_reasons`, `needs_review` and `review_reasons` from `raw_output` in place, and records that it did.
+- **`classifications`**: one row per run, nothing overwritten. Columns: id, reply_id, model, prompt_version, `model_category`, `model_rank`, `final_category`, `override_reasons text[]`, confidence, reasoning, evidence_quote, `details jsonb`, `flags jsonb`, `raw_output jsonb`, `needs_review`, `review_reasons text[]`, error, latency_ms, `prompt_tokens`, `completion_tokens`, created_at. Add an index on (reply_id, prompt_version, model); it serves the skip check. **The current result** for a reply is the row with the **highest `id`** among rows with `error IS NULL` for the active `prompt_version` + `model`. That rule is defined **once, in `db/queries.ts`**, and the list, the review queue, the detail page and the evaluation all use it. With this few rows no extra index is needed. `reapply-policy.ts` recomputes `final_category`, `override_reasons`, `needs_review` and `review_reasons` from `raw_output` in place, and records that it did.
 - **`corrections`**: reply_id, from_category, to_category, note, created_at. The category the app shows is the latest correction, if there is one, otherwise the latest `final_category`.
 
 ## Evaluation
 
-`scripts/eval.ts` and `/eval` both use `lib/metrics.ts`. They report:
+`scripts/eval.ts` and `/eval` both use `lib/metrics.ts`. **They score against `data/labels.json` (and the held-out labels) only, never against `corrections`.** A correction made during a demo must not change precision or recall. They report:
 - **Precision and recall per category, with the number of examples beside each** (resend_invoice has only 2), for BOTH `model_category` and `final_category`. The gap shows what the code rules caught.
 - A **confusion matrix**.
 - A **false-paid count**: replies marked paid that my labels say aren't. This is the headline number.
@@ -186,12 +193,16 @@ When something is misclassified, fix the prompt if a definition was unclear, add
 
 ## UI
 
-Server-rendered pages with Server Actions; no client state library. Cache Components is off in `next.config.ts`; every page that reads the database exports `const dynamic = "force-dynamic"` so it renders per request and the build never needs a database connection. It should look like a tool an AR person uses all day:
+Server-rendered pages with Server Actions; no client state library. It should look like a tool an AR person uses all day:
 - Each category gets a distinct pill color.
 - The review queue shows **why** each reply is there (reason chips).
 - The detail page shows the model's reasoning, the highlighted evidence quote, and any rule that changed the answer.
 - Correcting takes one click plus an optional note.
 - `/try` shows the full result on the page, including errors.
+- **`/try` handles a body-only paste in the form, not the schema.** The invoice fields stay required in the database: the paid recheck needs them, and without an invoice amount a `/try` reply could never be `paid`. So the form:
+  - prefills an **editable sample invoice** (number, amount, due date) and defaults sender and subject to "Pasted reply";
+  - sets `received_at` to now and generates an id `P-<short random>` (`replies.id` is plain text, not generated), with `source = pasted`.
+  The prefilled invoice also demos the paid recheck live: paste "Wired $3,150, trace 0210…", run it, change the invoice amount, run it again.
 - Label `paid` as **"Paid (claimed)"**: without bank data it's a credible claim, not verified payment.
 
 ## Environment and commands
@@ -237,6 +248,8 @@ Deploy after every step, so something working is always online.
 ## Working agreements
 
 - **Never commit secrets.** Check `git diff --staged` for keys before every commit. Remove keys from anything copied into `ai-logs/`.
+- **Never read, print or echo `.env.local`** or any variable holding a secret. Session transcripts get committed to `ai-logs/`, so a secret shown in a session ends up in the repo. To check that a variable is set, print only its name and whether it's present.
+- **At the end of each task, append one row to `ai-logs/README.md`:** date, session, what was built, how it was verified (commands run and results), and anything I corrected or rejected. Never edit or summarize the transcript files themselves.
 - **Ask before:** editing `POLICY.md` or `data/`, adding a dependency not listed above, or changing the database schema after the first migration.
 - **Prove each step works:** run the tests after changing `lib/`, run the evaluation after changing the prompt, and click through the deployed site after a deploy. Report results with the actual numbers or output, not "should work".
 - Keep commits small, with messages that say why.
